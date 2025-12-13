@@ -3,7 +3,7 @@
 
 ## 👨‍💻 Equipe
 
-* Felipe Mendes | Guilherme Felix | Pedro Medeiros | Lucas Tchaikovsky
+* Felipe Mendes | Guilherme Felix | Lucas Tchaikovsky | Pedro Medeiros 
 
 ## 📍 Sobre
 
@@ -12,7 +12,7 @@
 ## 🚀 Tecnologias
 
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.0-6DB33F?style=flat-square&logo=spring-boot&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2.0-6DB33F?style=flat-square&logo=spring-boot&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-316192?style=flat-square&logo=postgresql&logoColor=white)
 ## 🚧 Status do Projeto
 * Em desenvolvimento
