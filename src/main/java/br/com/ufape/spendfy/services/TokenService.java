@@ -1,6 +1,6 @@
 package br.com.ufape.spendfy.services;
 
-import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.User;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -19,10 +19,10 @@ public class TokenService {
     @Value("${api.security.token.secret}")
     private String secret;
 
-    public String generateToken(Usuario usuario) {
+    public String generateToken(User user) {
         try {
             return Jwts.builder()
-                    .subject(usuario.getEmail())
+                    .subject(user.getEmail())
                     .issuer("Spendfy API")
                     .issuedAt(new Date())
                     .expiration(generateExpirationDate())
