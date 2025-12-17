@@ -37,7 +37,7 @@ public class AuthenticationController {
         
         var auth = authenticationManager.authenticate(usernamePassword);
 
-        var token = tokenService.generateToken((Usuario) auth.getPrincipal());
+        var token = tokenService.generateToken((User) auth.getPrincipal());
 
         return ResponseEntity.ok(new LoginResponseDTO(token));
     }
@@ -48,11 +48,11 @@ public class AuthenticationController {
 
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.senha());
 
-        Usuario newUser = Usuario.builder()
-                .nome(data.nome())
+        User newUser = User.builder()
+                .name(data.nome())
                 .email(data.email())
-                .senha(encryptedPassword)
-                .status(Status.ATIVO)
+                .password(encryptedPassword)
+                .status(UserStatus.ACTIVE)
                 .build();
 
         repository.save(newUser);
