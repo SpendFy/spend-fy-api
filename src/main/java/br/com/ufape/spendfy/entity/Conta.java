@@ -1,6 +1,5 @@
 package br.com.ufape.spendfy.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,42 +13,44 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
-@Table(name = "accounts")
+@Table(name = "contas")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Account {
+public class Conta {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "account_id")
+    @Column(name = "id_conta")
     private Long id;
 
     @Column(nullable = false, length = 50)
-    private String name;
+    private String nome;
 
     @Column(nullable = false, length = 30)
-    private String type;
+    private String tipo;
 
-    @Column(name = "initial_balance", nullable = false, precision = 15, scale = 2)
-    private BigDecimal initialBalance;
+    @Column(name = "saldo_inicial", nullable = false, precision = 15, scale = 2)
+    private BigDecimal saldoInicial;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "id_usuario", nullable = false)
+    private Usuario usuario;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "data_cadastro", nullable = false, updatable = false)
+    private LocalDateTime dataCadastro;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "data_atualizacao")
+    private LocalDateTime dataAtualizacao;
 
-    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "conta", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @Builder.Default
-    private List<Transaction> transactions = new ArrayList<>();
+    private List<Transacao> transacoes = new ArrayList<>();
 }

@@ -1,7 +1,5 @@
 package br.com.ufape.spendfy.entity;
 
-import br.com.ufape.spendfy.enums.UserStatus;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,7 +8,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
@@ -18,70 +15,70 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
-@Table(name = "users")
+@Table(name = "usuarios")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User implements UserDetails {
+public class Usuario implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
+    @Column(name = "id_usuario")
     private Long id;
 
     @Column(nullable = false, length = 100)
-    private String name;
+    private String nome;
 
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
     @Column(nullable = false)
-    private String password;
+    private String senha;
 
     @Column(nullable = false, length = 20)
-    @Enumerated(EnumType.STRING)
-    private UserStatus status;
+    private String status;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "data_cadastro", nullable = false, updatable = false)
+    private LocalDateTime dataCadastro;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "data_atualizacao")
+    private LocalDateTime dataAtualizacao;
 
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @Builder.Default
-    private List<Category> categories = new ArrayList<>();
+    private List<Categoria> categorias = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @Builder.Default
-    private List<Account> accounts = new ArrayList<>();
+    private List<Conta> contas = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @Builder.Default
-    private List<Transaction> transactions = new ArrayList<>();
+    private List<Transacao> transacoes = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @Builder.Default
-    private List<Budget> budgets = new ArrayList<>();
-
+    private List<Orcamento> orcamentos = new ArrayList<>();
 
     @Override
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        return List.of();
     }
 
     @Override
     public String getPassword() {
-        return password;
+        return senha;
     }
 
     @Override
@@ -96,7 +93,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return "ATIVO".equals(status);
     }
 
     @Override
@@ -106,6 +103,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return this.status == UserStatus.ACTIVE;
+        return "ATIVO".equals(status);
     }
 }
