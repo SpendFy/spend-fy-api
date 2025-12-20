@@ -1,18 +1,28 @@
-# SpendFy
+# SpendFy API
 
+API para gestão financeira pessoal desenvolvida como projeto acadêmico na UFAPE.
 
-## 👨‍💻 Equipe
+## Integrantes
 
-* Felipe Mendes | Guilherme Felix | Lucas Tchaikovsky | Pedro Medeiros 
+- Felipe Mendes
+- Guilherme Felix
+- Lucas Tchaikovsky
+- Pedro Medeiros
 
-## 📍 Sobre
+## Sobre o Projeto
 
-* O SpendFy é um assistente financeiro desenvolvido em Spring Boot que permite o registro e acompanhamento detalhado de receitas e despesas.
+O SpendFy API é responsável por fornecer os recursos para controlar e gerenciar finanças pessoais, permitindo o registro de receitas, despesas, categorias financeiras, consulta de relatórios e muito mais. Este projeto visa ajudar usuários a terem maior controle sobre seu orçamento e planejamento financeiro.
 
-## 🚀 Tecnologias
+## Tecnologias Utilizadas
 
-![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2.0-6DB33F?style=flat-square&logo=spring-boot&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-316192?style=flat-square&logo=postgresql&logoColor=white)
-## 🚧 Status do Projeto
-* Em desenvolvimento
+- **Java**: Linguagem principal para desenvolvimento da API.
+- **Spring Boot**: Framework para construção de aplicações Java, facilitando a criação de APIs RESTful.
+- **Docker**: Utilizado para containerização e fácil implantação da aplicação.
+
+## Licença
+
+Este projeto é destinado para fins acadêmicos na UFAPE.
+
+---
+
+Sinta-se à vontade para contribuir ou relatar problemas na seção de [Issues](https://github.com/SpendFy/spend-fy-api/issues).
