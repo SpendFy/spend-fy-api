@@ -71,6 +71,7 @@ public class Usuario implements UserDetails {
     private List<Orcamento> orcamentos = new ArrayList<>();
 
     @Override
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();
     }
