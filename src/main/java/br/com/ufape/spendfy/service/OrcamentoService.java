@@ -71,6 +71,7 @@ public class OrcamentoService {
         return toResponse(orcamento);
     }
 
+    @Transactional(readOnly = true)
     public List<OrcamentoResponse> listarTodos() {
         Usuario usuario = getUsuarioAutenticado();
         return orcamentoRepository.findByUsuarioId(usuario.getId())
@@ -79,6 +80,7 @@ public class OrcamentoService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public OrcamentoResponse buscarPorId(Long id) {
         Usuario usuario = getUsuarioAutenticado();
         Orcamento orcamento = orcamentoRepository.findById(id)

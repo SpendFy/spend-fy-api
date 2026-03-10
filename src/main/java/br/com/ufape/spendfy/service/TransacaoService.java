@@ -70,6 +70,7 @@ public class TransacaoService {
         return toResponse(transacao);
     }
 
+    @Transactional(readOnly = true)
     public List<TransacaoResponse> listarTodas() {
         Usuario usuario = getUsuarioAutenticado();
         return transacaoRepository.findByUsuarioId(usuario.getId())
@@ -78,6 +79,7 @@ public class TransacaoService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public TransacaoResponse buscarPorId(Long id) {
         Usuario usuario = getUsuarioAutenticado();
         Transacao transacao = transacaoRepository.findById(id)

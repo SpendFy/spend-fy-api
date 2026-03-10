@@ -49,6 +49,7 @@ public class ContaService {
         return toResponse(conta);
     }
 
+    @Transactional(readOnly = true)
     public List<ContaResponse> listarTodas() {
         Usuario usuario = getUsuarioAutenticado();
         return contaRepository.findByUsuarioId(usuario.getId())
@@ -57,6 +58,7 @@ public class ContaService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public ContaResponse buscarPorId(Long id) {
         Usuario usuario = getUsuarioAutenticado();
         Conta conta = contaRepository.findById(id)
