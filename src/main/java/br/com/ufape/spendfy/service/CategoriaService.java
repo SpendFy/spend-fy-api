@@ -48,6 +48,7 @@ public class CategoriaService {
         return toResponse(categoria);
     }
 
+    @Transactional(readOnly = true)
     public List<CategoriaResponse> listarTodas() {
         Usuario usuario = getUsuarioAutenticado();
         return categoriaRepository.findByUsuarioId(usuario.getId())
@@ -56,6 +57,7 @@ public class CategoriaService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public CategoriaResponse buscarPorId(Long id) {
         Usuario usuario = getUsuarioAutenticado();
         Categoria categoria = categoriaRepository.findById(id)
