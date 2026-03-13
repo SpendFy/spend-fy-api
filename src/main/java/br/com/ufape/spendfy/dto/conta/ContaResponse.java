@@ -18,6 +18,7 @@ public class ContaResponse {
     private String nome;
     private String tipo;
     private BigDecimal saldoInicial;
+    private BigDecimal saldoAtual;
     private Long idUsuario;
     private LocalDateTime dataCadastro;
     private LocalDateTime dataAtualizacao;
