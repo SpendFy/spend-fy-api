@@ -3,6 +3,7 @@ package br.com.ufape.spendfy.service;
 import br.com.ufape.spendfy.dto.conta.ContaRequest;
 import br.com.ufape.spendfy.dto.conta.ContaResponse;
 import br.com.ufape.spendfy.entity.Conta;
+import br.com.ufape.spendfy.entity.Transacao;
 import br.com.ufape.spendfy.entity.Usuario;
 import br.com.ufape.spendfy.exception.BusinessException;
 import br.com.ufape.spendfy.exception.ResourceNotFoundException;
@@ -13,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -109,11 +111,24 @@ public class ContaService {
     }
 
     private ContaResponse toResponse(Conta conta) {
+        BigDecimal receitas = conta.getTransacoes().stream()
+                .filter(t -> "RECEITA".equals(t.getTipo()))
+                .map(Transacao::getValor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal despesas = conta.getTransacoes().stream()
+                .filter(t -> "DESPESA".equals(t.getTipo()))
+                .map(Transacao::getValor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal saldoAtual = conta.getSaldoInicial().add(receitas).subtract(despesas);
+
         return ContaResponse.builder()
                 .id(conta.getId())
                 .nome(conta.getNome())
                 .tipo(conta.getTipo())
                 .saldoInicial(conta.getSaldoInicial())
+                .saldoAtual(saldoAtual)
                 .idUsuario(conta.getUsuario().getId())
                 .dataCadastro(conta.getDataCadastro())
                 .dataAtualizacao(conta.getDataAtualizacao())
