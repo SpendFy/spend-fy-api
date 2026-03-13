@@ -46,6 +46,25 @@ public class TransacaoService {
             throw new BusinessException("Conta não pertence ao usuário autenticado");
         }
 
+        if ("DESPESA".equals(request.getTipo())) {
+            java.math.BigDecimal receitas = conta.getTransacoes().stream()
+                    .filter(t -> "RECEITA".equals(t.getTipo()))
+                    .map(br.com.ufape.spendfy.entity.Transacao::getValor)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+            java.math.BigDecimal despesas = conta.getTransacoes().stream()
+                    .filter(t -> "DESPESA".equals(t.getTipo()))
+                    .map(br.com.ufape.spendfy.entity.Transacao::getValor)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+            java.math.BigDecimal saldoDisponivel = conta.getSaldoInicial().add(receitas).subtract(despesas);
+
+            if (request.getValor().compareTo(saldoDisponivel) > 0) {
+                throw new BusinessException("Saldo insuficiente na conta " + conta.getNome() + 
+                                            ". Saldo disponível: R$ " + saldoDisponivel);
+            }
+        }
+
         Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
                 .orElseThrow(() -> new ResourceNotFoundException("Categoria", "id", request.getIdCategoria()));
 
