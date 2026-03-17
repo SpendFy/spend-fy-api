@@ -3,29 +3,19 @@ package br.com.ufape.spendfy.repository;
 import br.com.ufape.spendfy.entity.Orcamento;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
-public interface OrcamentoRepository extends JpaRepository<Orcamento, Long> {
-
-    List<Orcamento> findByUsuarioId(Long idUsuario);
-
-    List<Orcamento> findByUsuarioIdAndCategoriaId(Long idUsuario, Long idCategoria);
-
-    @Query("SELECT o FROM Orcamento o WHERE o.usuario.id = :idUsuario " +
-           "AND o.categoria.id = :idCategoria " +
-           "AND ((o.dataInicio BETWEEN :dataInicio AND :dataFim) " +
-           "OR (o.dataFim BETWEEN :dataInicio AND :dataFim) " +
-           "OR (:dataInicio BETWEEN o.dataInicio AND o.dataFim) " +
-           "OR (:dataFim BETWEEN o.dataInicio AND o.dataFim))")
-    List<Orcamento> findOverlappingOrcamentos(
-            @Param("idUsuario") Long idUsuario,
-            @Param("idCategoria") Long idCategoria,
-            @Param("dataInicio") LocalDate dataInicio,
-            @Param("dataFim") LocalDate dataFim
-    );
+public interface OrcamentoRepository extends JpaRepository<Orcamento, String> {
+    List<Orcamento> findByUserId(String userId);
+    Optional<Orcamento> findByIdAndUserId(String id, String userId);
+    List<Orcamento> findByUserIdAndCategoriaId(String userId, String categoriaId);
+    
+    @Query("SELECT o FROM Orcamento o WHERE o.user.id = :userId AND o.categoria.id = :categoriaId AND " +
+           "((o.startDate <= :date AND o.endDate >= :date) OR " +
+           "(o.startDate <= :date2 AND o.endDate >= :date2))")
+    List<Orcamento> findOverlappingBudgets(String userId, String categoriaId, LocalDate date, LocalDate date2);
 }
