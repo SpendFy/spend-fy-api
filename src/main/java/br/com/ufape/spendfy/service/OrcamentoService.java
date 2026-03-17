@@ -1,168 +1,108 @@
 package br.com.ufape.spendfy.service;
 
-import br.com.ufape.spendfy.dto.orcamento.OrcamentoRequest;
-import br.com.ufape.spendfy.dto.orcamento.OrcamentoResponse;
+import br.com.ufape.spendfy.dto.orcamento.OrcamentoDTO;
 import br.com.ufape.spendfy.entity.Categoria;
 import br.com.ufape.spendfy.entity.Orcamento;
-import br.com.ufape.spendfy.entity.Usuario;
-import br.com.ufape.spendfy.exception.BusinessException;
+import br.com.ufape.spendfy.entity.User;
+import br.com.ufape.spendfy.exception.InvalidOperationException;
 import br.com.ufape.spendfy.exception.ResourceNotFoundException;
-import br.com.ufape.spendfy.repository.CategoriaRepository;
+import br.com.ufape.spendfy.mapper.EntityMapper;
 import br.com.ufape.spendfy.repository.OrcamentoRepository;
-import br.com.ufape.spendfy.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class OrcamentoService {
-
+    
     private final OrcamentoRepository orcamentoRepository;
-    private final CategoriaRepository categoriaRepository;
-    private final UsuarioRepository usuarioRepository;
-
-    private Usuario getUsuarioAutenticado() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+    private final CategoriaService categoriaService;
+    private final UserService userService;
+    private final EntityMapper mapper;
+    
+    public OrcamentoDTO createOrcamento(OrcamentoDTO dto, String userId) {
+        User user = userService.findUserById(userId);
+        Categoria categoria = categoriaService.findCategoriaById(dto.getCategoriaId());
+        
+        validateDateRange(dto.getStartDate(), dto.getEndDate());
+        checkOverlappingBudgets(userId, dto.getCategoriaId(), dto.getStartDate(), dto.getEndDate());
+        
+        Orcamento orcamento = mapper.toOrcamentoEntity(dto, categoria, user);
+        Orcamento savedOrcamento = orcamentoRepository.save(orcamento);
+        return mapper.toOrcamentoDTO(savedOrcamento);
     }
-
-    @Transactional
-    public OrcamentoResponse criar(OrcamentoRequest request) {
-        Usuario usuario = getUsuarioAutenticado();
-
-        if (request.getDataFim().isBefore(request.getDataInicio())) {
-            throw new BusinessException("Data de fim não pode ser anterior à data de início");
-        }
-
-        Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
-                .orElseThrow(() -> new ResourceNotFoundException("Categoria", "id", request.getIdCategoria()));
-
-        if (!categoria.getUsuario().getId().equals(usuario.getId())) {
-            throw new BusinessException("Categoria não pertence ao usuário autenticado");
-        }
-
-        List<Orcamento> overlapping = orcamentoRepository.findOverlappingOrcamentos(
-                usuario.getId(),
-                request.getIdCategoria(),
-                request.getDataInicio(),
-                request.getDataFim()
-        );
-
-        if (!overlapping.isEmpty()) {
-            throw new BusinessException("Já existe um orçamento para esta categoria no período informado");
-        }
-
-        Orcamento orcamento = Orcamento.builder()
-                .valorLimite(request.getValorLimite())
-                .dataInicio(request.getDataInicio())
-                .dataFim(request.getDataFim())
-                .usuario(usuario)
-                .categoria(categoria)
-                .build();
-
-        orcamento = orcamentoRepository.save(orcamento);
-
-        return toResponse(orcamento);
-    }
-
+    
     @Transactional(readOnly = true)
-    public List<OrcamentoResponse> listarTodos() {
-        Usuario usuario = getUsuarioAutenticado();
-        return orcamentoRepository.findByUsuarioId(usuario.getId())
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public OrcamentoDTO getOrcamentoById(String id, String userId) {
+        Orcamento orcamento = orcamentoRepository.findByIdAndUserId(id, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Budget", "id", id));
+        return mapper.toOrcamentoDTO(orcamento);
     }
-
+    
     @Transactional(readOnly = true)
-    public OrcamentoResponse buscarPorId(Long id) {
-        Usuario usuario = getUsuarioAutenticado();
-        Orcamento orcamento = orcamentoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Orcamento", "id", id));
-
-        if (!orcamento.getUsuario().getId().equals(usuario.getId())) {
-            throw new BusinessException("Orçamento não pertence ao usuário autenticado");
-        }
-
-        return toResponse(orcamento);
+    public List<OrcamentoDTO> getAllOrcamentosByUser(String userId) {
+        userService.findUserById(userId);
+        return orcamentoRepository.findByUserId(userId)
+            .stream()
+            .map(mapper::toOrcamentoDTO)
+            .collect(Collectors.toList());
     }
-
-    @Transactional
-    public OrcamentoResponse atualizar(Long id, OrcamentoRequest request) {
-        Usuario usuario = getUsuarioAutenticado();
-        Orcamento orcamento = orcamentoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Orcamento", "id", id));
-
-        if (!orcamento.getUsuario().getId().equals(usuario.getId())) {
-            throw new BusinessException("Orçamento não pertence ao usuário autenticado");
+    
+    @Transactional(readOnly = true)
+    public List<OrcamentoDTO> getOrcamentosByCategoria(String userId, String categoriaId) {
+        userService.findUserById(userId);
+        categoriaService.findCategoriaById(categoriaId);
+        return orcamentoRepository.findByUserIdAndCategoriaId(userId, categoriaId)
+            .stream()
+            .map(mapper::toOrcamentoDTO)
+            .collect(Collectors.toList());
+    }
+    
+    public OrcamentoDTO updateOrcamento(String id, OrcamentoDTO dto, String userId) {
+        Orcamento orcamento = orcamentoRepository.findByIdAndUserId(id, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Budget", "id", id));
+        
+        validateDateRange(dto.getStartDate(), dto.getEndDate());
+        
+        if (!orcamento.getStartDate().equals(dto.getStartDate()) || 
+            !orcamento.getEndDate().equals(dto.getEndDate())) {
+            checkOverlappingBudgets(userId, dto.getCategoriaId(), dto.getStartDate(), dto.getEndDate());
         }
-
-        if (request.getDataFim().isBefore(request.getDataInicio())) {
-            throw new BusinessException("Data de fim não pode ser anterior à data de início");
-        }
-
-        Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
-                .orElseThrow(() -> new ResourceNotFoundException("Categoria", "id", request.getIdCategoria()));
-
-        if (!categoria.getUsuario().getId().equals(usuario.getId())) {
-            throw new BusinessException("Categoria não pertence ao usuário autenticado");
-        }
-
-        List<Orcamento> overlapping = orcamentoRepository.findOverlappingOrcamentos(
-                usuario.getId(),
-                request.getIdCategoria(),
-                request.getDataInicio(),
-                request.getDataFim()
-        );
-
-        overlapping = overlapping.stream()
-                .filter(o -> !o.getId().equals(id))
-                .collect(Collectors.toList());
-
-        if (!overlapping.isEmpty()) {
-            throw new BusinessException("Já existe um orçamento para esta categoria no período informado");
-        }
-
-        orcamento.setValorLimite(request.getValorLimite());
-        orcamento.setDataInicio(request.getDataInicio());
-        orcamento.setDataFim(request.getDataFim());
+        
+        Categoria categoria = categoriaService.findCategoriaById(dto.getCategoriaId());
+        
+        orcamento.setName(dto.getName());
+        orcamento.setLimitAmount(dto.getLimitAmount());
+        orcamento.setStartDate(dto.getStartDate());
+        orcamento.setEndDate(dto.getEndDate());
         orcamento.setCategoria(categoria);
-
-        orcamento = orcamentoRepository.save(orcamento);
-
-        return toResponse(orcamento);
+        orcamento.setDescription(dto.getDescription());
+        
+        Orcamento updatedOrcamento = orcamentoRepository.save(orcamento);
+        return mapper.toOrcamentoDTO(updatedOrcamento);
     }
-
-    @Transactional
-    public void deletar(Long id) {
-        Usuario usuario = getUsuarioAutenticado();
-        Orcamento orcamento = orcamentoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Orcamento", "id", id));
-
-        if (!orcamento.getUsuario().getId().equals(usuario.getId())) {
-            throw new BusinessException("Orçamento não pertence ao usuário autenticado");
-        }
-
+    
+    public void deleteOrcamento(String id, String userId) {
+        Orcamento orcamento = orcamentoRepository.findByIdAndUserId(id, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Budget", "id", id));
         orcamentoRepository.delete(orcamento);
     }
-
-    private OrcamentoResponse toResponse(Orcamento orcamento) {
-        return OrcamentoResponse.builder()
-                .id(orcamento.getId())
-                .valorLimite(orcamento.getValorLimite())
-                .dataInicio(orcamento.getDataInicio())
-                .dataFim(orcamento.getDataFim())
-                .idUsuario(orcamento.getUsuario().getId())
-                .idCategoria(orcamento.getCategoria().getId())
-                .nomeCategoria(orcamento.getCategoria().getNome())
-                .dataCadastro(orcamento.getDataCadastro())
-                .dataAtualizacao(orcamento.getDataAtualizacao())
-                .build();
+    
+    private void validateDateRange(LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new InvalidOperationException("Start date must be before end date");
+        }
+    }
+    
+    private void checkOverlappingBudgets(String userId, String categoriaId, LocalDate startDate, LocalDate endDate) {
+        List<Orcamento> overlapping = orcamentoRepository.findOverlappingBudgets(userId, categoriaId, startDate, endDate);
+        if (!overlapping.isEmpty()) {
+            throw new InvalidOperationException("Budget period overlaps with existing budget for this category");
+        }
     }
 }
