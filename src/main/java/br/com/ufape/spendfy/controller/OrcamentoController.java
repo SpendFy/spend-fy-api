@@ -1,59 +1,74 @@
 package br.com.ufape.spendfy.controller;
 
-import br.com.ufape.spendfy.dto.orcamento.OrcamentoRequest;
-import br.com.ufape.spendfy.dto.orcamento.OrcamentoResponse;
+import br.com.ufape.spendfy.dto.orcamento.OrcamentoDTO;
 import br.com.ufape.spendfy.service.OrcamentoService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/orcamentos")
+@RequestMapping("/api/v1/budgets")
 @RequiredArgsConstructor
-@Tag(name = "Orçamentos", description = "Endpoints para gerenciamento de orçamentos")
-@SecurityRequirement(name = "bearerAuth")
+@Tag(name = "Budgets", description = "Budget management endpoints")
 public class OrcamentoController {
-
+    
     private final OrcamentoService orcamentoService;
-
+    
     @PostMapping
-    @Operation(summary = "Criar orçamento", description = "Cria um novo orçamento para o usuário autenticado")
-    public ResponseEntity<OrcamentoResponse> criar(@Valid @RequestBody OrcamentoRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orcamentoService.criar(request));
+    @Operation(summary = "Create a new budget", description = "Create a new spending budget for a category")
+    public ResponseEntity<OrcamentoDTO> createOrcamento(
+            @Valid @RequestBody OrcamentoDTO dto,
+            @RequestHeader("X-User-Id") String userId) {
+        OrcamentoDTO orcamento = orcamentoService.createOrcamento(dto, userId);
+        return new ResponseEntity<>(orcamento, HttpStatus.CREATED);
     }
-
-    @GetMapping
-    @Operation(summary = "Listar orçamentos", description = "Lista todos os orçamentos do usuário autenticado")
-    public ResponseEntity<List<OrcamentoResponse>> listarTodos() {
-        return ResponseEntity.ok(orcamentoService.listarTodos());
-    }
-
+    
     @GetMapping("/{id}")
-    @Operation(summary = "Buscar orçamento por ID", description = "Busca um orçamento específico pelo ID")
-    public ResponseEntity<OrcamentoResponse> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(orcamentoService.buscarPorId(id));
+    @Operation(summary = "Get budget by ID", description = "Retrieve a budget by its unique ID")
+    public ResponseEntity<OrcamentoDTO> getOrcamentoById(
+            @PathVariable String id,
+            @RequestHeader("X-User-Id") String userId) {
+        OrcamentoDTO orcamento = orcamentoService.getOrcamentoById(id, userId);
+        return ResponseEntity.ok(orcamento);
     }
-
+    
+    @GetMapping
+    @Operation(summary = "Get all budgets", description = "Retrieve all budgets for the authenticated user")
+    public ResponseEntity<List<OrcamentoDTO>> getAllOrcamentos(@RequestHeader("X-User-Id") String userId) {
+        List<OrcamentoDTO> orcamentos = orcamentoService.getAllOrcamentosByUser(userId);
+        return ResponseEntity.ok(orcamentos);
+    }
+    
+    @GetMapping("/categoria/{categoriaId}")
+    @Operation(summary = "Get budgets by category", description = "Retrieve all budgets for a specific category")
+    public ResponseEntity<List<OrcamentoDTO>> getOrcamentosByCategoria(
+            @PathVariable String categoriaId,
+            @RequestHeader("X-User-Id") String userId) {
+        List<OrcamentoDTO> orcamentos = orcamentoService.getOrcamentosByCategoria(userId, categoriaId);
+        return ResponseEntity.ok(orcamentos);
+    }
+    
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar orçamento", description = "Atualiza um orçamento existente")
-    public ResponseEntity<OrcamentoResponse> atualizar(
-            @PathVariable Long id,
-            @Valid @RequestBody OrcamentoRequest request
-    ) {
-        return ResponseEntity.ok(orcamentoService.atualizar(id, request));
+    @Operation(summary = "Update budget", description = "Update an existing budget")
+    public ResponseEntity<OrcamentoDTO> updateOrcamento(
+            @PathVariable String id,
+            @Valid @RequestBody OrcamentoDTO dto,
+            @RequestHeader("X-User-Id") String userId) {
+        OrcamentoDTO orcamento = orcamentoService.updateOrcamento(id, dto, userId);
+        return ResponseEntity.ok(orcamento);
     }
-
+    
     @DeleteMapping("/{id}")
-    @Operation(summary = "Deletar orçamento", description = "Deleta um orçamento existente")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        orcamentoService.deletar(id);
+    @Operation(summary = "Delete budget", description = "Delete a budget")
+    public ResponseEntity<Void> deleteOrcamento(
+            @PathVariable String id,
+            @RequestHeader("X-User-Id") String userId) {
+        orcamentoService.deleteOrcamento(id, userId);
         return ResponseEntity.noContent().build();
     }
 }
