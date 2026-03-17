@@ -5,52 +5,62 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
-@Table(name = "contas")
+@Table(name = "accounts", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"user_id", "name"})
+})
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Conta {
-
+    
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_conta")
-    private Long id;
-
-    @Column(nullable = false, length = 50)
-    private String nome;
-
-    @Column(nullable = false, length = 30)
-    private String tipo;
-
-    @Column(name = "saldo_inicial", nullable = false, precision = 15, scale = 2)
-    private BigDecimal saldoInicial;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario", nullable = false)
-    private Usuario usuario;
-
-    @CreationTimestamp
-    @Column(name = "data_cadastro", nullable = false, updatable = false)
-    private LocalDateTime dataCadastro;
-
-    @UpdateTimestamp
-    @Column(name = "data_atualizacao")
-    private LocalDateTime dataAtualizacao;
-
-    @OneToMany(mappedBy = "conta", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
+    
+    @Column(nullable = false)
+    private String name;
+    
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    
+    @Column(precision = 19, scale = 2, nullable = false)
     @Builder.Default
-    private List<Transacao> transacoes = new ArrayList<>();
+    private BigDecimal balance = BigDecimal.ZERO;
+    
+    @Column(precision = 19, scale = 2)
+    private BigDecimal initialBalance;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ContaType type;
+    
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean active = true;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+    
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
+    @PrePersist
+    private void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    @PreUpdate
+    private void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
