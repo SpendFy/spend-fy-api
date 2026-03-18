@@ -5,62 +5,49 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
-@Table(name = "accounts", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "name"})
-})
+@Table(name = "accounts")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Conta {
-    
+public class Account {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
-    
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @Column(nullable = false)
     private String name;
-    
-    @Column(columnDefinition = "TEXT")
+
+    @Column(nullable = false)
+    private String type;
+
+    @Column(nullable = false)
+    private BigDecimal balance;
+
+    @Column
     private String description;
-    
-    @Column(precision = 19, scale = 2, nullable = false)
-    @Builder.Default
-    private BigDecimal balance = BigDecimal.ZERO;
-    
-    @Column(precision = 19, scale = 2)
-    private BigDecimal initialBalance;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ContaType type;
-    
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean active = true;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    
-    @Column(name = "created_at", nullable = false, updatable = false)
+
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Transaction> transactions;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
-    @Column(name = "updated_at")
+
+    @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
-    
-    @PrePersist
-    private void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-    
-    @PreUpdate
-    private void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 }
