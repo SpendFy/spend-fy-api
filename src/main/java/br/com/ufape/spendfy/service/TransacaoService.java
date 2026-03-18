@@ -1,134 +1,143 @@
 package br.com.ufape.spendfy.service;
 
-import br.com.ufape.spendfy.dto.transacao.TransacaoDTO;
-import br.com.ufape.spendfy.entity.Conta;
-import br.com.ufape.spendfy.entity.Categoria;
-import br.com.ufape.spendfy.entity.Transacao;
-import br.com.ufape.spendfy.entity.TipoTransacao;
-import br.com.ufape.spendfy.exception.InvalidOperationException;
-import br.com.ufape.spendfy.exception.ResourceNotFoundException;
-import br.com.ufape.spendfy.mapper.EntityMapper;
-import br.com.ufape.spendfy.repository.TransacaoRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDate;
+import br.com.ufape.spendfy.dto.TransactionDTO;
+import br.com.ufape.spendfy.entity.*;
+import br.com.ufape.spendfy.exception.ResourceNotFoundException;
+import br.com.ufape.spendfy.repository.*;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
-public class TransacaoService {
-    
-    private final TransacaoRepository transacaoRepository;
-    private final ContaService contaService;
-    private final CategoriaService categoriaService;
-    private final UserService userService;
-    private final EntityMapper mapper;
-    
-    public TransacaoDTO createTransacao(TransacaoDTO dto, String userId) {
-        userService.findUserById(userId);
-        Conta conta = contaService.findContaById(dto.getContaId());
-        Categoria categoria = categoriaService.findCategoriaById(dto.getCategoriaId());
-        
-        validateCategoriaType(dto.getType(), categoria);
-        
-        Transacao transacao = mapper.toTransacaoEntity(dto, conta, categoria, userService.findUserById(userId));
-        
-        Transacao savedTransacao = transacaoRepository.save(transacao);
-        updateAccountBalance(conta, transacao, true);
-        
-        return mapper.toTransacaoDTO(savedTransacao);
+public class TransactionService {
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    public TransactionDTO createTransaction(TransactionDTO transactionDTO, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Account account = accountRepository.findById(transactionDTO.getAccountId())
+            .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+
+        Category category = categoryRepository.findById(transactionDTO.getCategoryId())
+            .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        Transaction transaction = Transaction.builder()
+            .description(transactionDTO.getDescription())
+            .amount(transactionDTO.getAmount())
+            .type(Transaction.TransactionType.valueOf(transactionDTO.getType()))
+            .transactionDate(transactionDTO.getTransactionDate())
+            .notes(transactionDTO.getNotes())
+            .user(user)
+            .account(account)
+            .category(category)
+            .build();
+
+        Transaction saved = transactionRepository.save(transaction);
+        return mapToDTO(saved);
     }
-    
-    @Transactional(readOnly = true)
-    public TransacaoDTO getTransacaoById(String id, String userId) {
-        Transacao transacao = transacaoRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Transaction", "id", id));
-        return mapper.toTransacaoDTO(transacao);
-    }
-    
-    @Transactional(readOnly = true)
-    public Page<TransacaoDTO> getTransacoesByUser(String userId, Pageable pageable) {
-        userService.findUserById(userId);
-        return transacaoRepository.findByUserId(userId, pageable)
-            .map(mapper::toTransacaoDTO);
-    }
-    
-    @Transactional(readOnly = true)
-    public List<TransacaoDTO> getTransacoesByConta(String userId, String contaId) {
-        userService.findUserById(userId);
-        return transacaoRepository.findByUserIdAndContaId(userId, contaId)
+
+    public List<TransactionDTO> getTransactionsByUser(String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return transactionRepository.findByUser(user)
             .stream()
-            .map(mapper::toTransacaoDTO)
+            .map(this::mapToDTO)
             .collect(Collectors.toList());
     }
-    
-    @Transactional(readOnly = true)
-    public List<TransacaoDTO> getTransacoesByDateRange(String userId, LocalDate startDate, LocalDate endDate) {
-        userService.findUserById(userId);
-        return transacaoRepository.findByUserIdAndDateRange(userId, startDate, endDate)
+
+    public TransactionDTO getTransactionById(Long id, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Transaction transaction = transactionRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+
+        if (!transaction.getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Unauthorized access to transaction");
+        }
+
+        return mapToDTO(transaction);
+    }
+
+    public List<TransactionDTO> getTransactionsByDateRange(LocalDateTime startDate, LocalDateTime endDate, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return transactionRepository.findByUserIdAndDateRange(user.getId(), startDate, endDate)
             .stream()
-            .map(mapper::toTransacaoDTO)
+            .map(this::mapToDTO)
             .collect(Collectors.toList());
     }
-    
-    public TransacaoDTO updateTransacao(String id, TransacaoDTO dto, String userId) {
-        Transacao transacao = transacaoRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Transaction", "id", id));
-        
-        if (!transacao.getAmount().equals(dto.getAmount()) || !transacao.getType().name().equals(dto.getType())) {
-            updateAccountBalance(transacao.getConta(), transacao, false);
+
+    public TransactionDTO updateTransaction(Long id, TransactionDTO transactionDTO, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Transaction transaction = transactionRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+
+        if (!transaction.getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Unauthorized access to transaction");
         }
-        
-        Conta conta = contaService.findContaById(dto.getContaId());
-        Categoria categoria = categoriaService.findCategoriaById(dto.getCategoriaId());
-        
-        validateCategoriaType(dto.getType(), categoria);
-        
-        transacao.setDescription(dto.getDescription());
-        transacao.setAmount(dto.getAmount());
-        transacao.setType(TipoTransacao.valueOf(dto.getType()));
-        transacao.setTransactionDate(dto.getTransactionDate());
-        transacao.setConta(conta);
-        transacao.setCategoria(categoria);
-        transacao.setNotes(dto.getNotes());
-        transacao.setReconciled(dto.getReconciled());
-        
-        Transacao updatedTransacao = transacaoRepository.save(transacao);
-        updateAccountBalance(conta, updatedTransacao, true);
-        
-        return mapper.toTransacaoDTO(updatedTransacao);
+
+        Category category = categoryRepository.findById(transactionDTO.getCategoryId())
+            .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        transaction.setDescription(transactionDTO.getDescription());
+        transaction.setAmount(transactionDTO.getAmount());
+        transaction.setType(Transaction.TransactionType.valueOf(transactionDTO.getType()));
+        transaction.setTransactionDate(transactionDTO.getTransactionDate());
+        transaction.setNotes(transactionDTO.getNotes());
+        transaction.setCategory(category);
+
+        Transaction updated = transactionRepository.save(transaction);
+        return mapToDTO(updated);
     }
-    
-    public void deleteTransacao(String id, String userId) {
-        Transacao transacao = transacaoRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Transaction", "id", id));
-        updateAccountBalance(transacao.getConta(), transacao, false);
-        transacaoRepository.delete(transacao);
+
+    public void deleteTransaction(Long id, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Transaction transaction = transactionRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+
+        if (!transaction.getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Unauthorized access to transaction");
+        }
+
+        transactionRepository.delete(transaction);
     }
-    
-    private void updateAccountBalance(Conta conta, Transacao transacao, boolean isAdding) {
-        if (transacao.getType() == TipoTransacao.INCOME) {
-            conta.setBalance(isAdding ? 
-                conta.getBalance().add(transacao.getAmount()) : 
-                conta.getBalance().subtract(transacao.getAmount()));
-        } else if (transacao.getType() == TipoTransacao.EXPENSE) {
-            conta.setBalance(isAdding ? 
-                conta.getBalance().subtract(transacao.getAmount()) : 
-                conta.getBalance().add(transacao.getAmount()));
-        }
-    }
-    
-    private void validateCategoriaType(String tipoTransacao, Categoria categoria) {
-        if (tipoTransacao.equals("INCOME") && !categoria.getType().name().equals("INCOME")) {
-            throw new InvalidOperationException("Invalid category type for income transaction");
-        }
-        if (tipoTransacao.equals("EXPENSE") && !categoria.getType().name().equals("EXPENSE")) {
-            throw new InvalidOperationException("Invalid category type for expense transaction");
-        }
+
+    private TransactionDTO mapToDTO(Transaction transaction) {
+        return TransactionDTO.builder()
+            .id(transaction.getId())
+            .description(transaction.getDescription())
+            .amount(transaction.getAmount())
+            .type(transaction.getType().name())
+            .transactionDate(transaction.getTransactionDate())
+            .notes(transaction.getNotes())
+            .accountId(transaction.getAccount().getId())
+            .categoryId(transaction.getCategory().getId())
+            .createdAt(transaction.getCreatedAt())
+            .updatedAt(transaction.getUpdatedAt())
+            .build();
     }
 }
