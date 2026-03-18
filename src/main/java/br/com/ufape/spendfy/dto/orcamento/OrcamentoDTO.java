@@ -1,39 +1,39 @@
-package br.com.ufape.spendfy.dto.orcamento;
+package br.com.ufape.spendfy.dto;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.*;
+
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrcamentoDTO {
-    private String id;
-    
+@Builder
+public class BudgetDTO {
+
+    private Long id;
+
     @NotBlank(message = "Budget name is required")
     private String name;
-    
-    @NotNull(message = "Limit amount is required")
-    @DecimalMin(value = "0.01", message = "Limit amount must be greater than zero")
-    private BigDecimal limitAmount;
-    
-    @NotNull(message = "Start date is required")
-    private LocalDate startDate;
-    
-    @NotNull(message = "End date is required")
-    private LocalDate endDate;
-    
-    @NotBlank(message = "Category ID is required")
-    private String categoriaId;
-    
+
+    @NotNull(message = "Budget limit is required")
+    @DecimalMin(value = "0.01", message = "Limit must be greater than 0")
+    private BigDecimal limit;
+
+    private BigDecimal spent;
+
+    @NotBlank(message = "Period is required")
+    private String period;
+
     private String description;
-    
+
+    private Long categoryId;
+
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 }
