@@ -5,71 +5,61 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "transactions", indexes = {
-    @Index(name = "idx_user_date", columnList = "user_id,transaction_date"),
-    @Index(name = "idx_conta_date", columnList = "conta_id,transaction_date")
-})
+@Table(name = "transactions")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Transacao {
-    
+public class Transaction {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
-    
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @Column(nullable = false)
     private String description;
-    
-    @Column(precision = 19, scale = 2, nullable = false)
+
+    @Column(nullable = false)
     private BigDecimal amount;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TipoTransacao type;
-    
-    @Column(name = "transaction_date", nullable = false)
-    private LocalDate transactionDate;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "conta_id", nullable = false)
-    private Conta conta;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "categoria_id", nullable = false)
-    private Categoria categoria;
-    
+    private TransactionType type;
+
+    @Column(nullable = false)
+    private LocalDateTime transactionDate;
+
+    @Column
+    private String notes;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    
-    @Column(columnDefinition = "TEXT")
-    private String notes;
-    
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean reconciled = false;
-    
-    @Column(name = "created_at", nullable = false, updatable = false)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", nullable = false)
+    private Account account;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
-    @Column(name = "updated_at")
+
+    @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
-    
-    @PrePersist
-    private void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-    
-    @PreUpdate
-    private void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+
+    public enum TransactionType {
+        INCOME, EXPENSE
     }
 }
