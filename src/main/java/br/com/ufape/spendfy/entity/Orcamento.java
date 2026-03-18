@@ -5,61 +5,57 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "budgets", indexes = {
-    @Index(name = "idx_user_period", columnList = "user_id,start_date,end_date")
-})
+@Table(name = "budgets")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Orcamento {
-    
+public class Budget {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
-    
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @Column(nullable = false)
     private String name;
-    
-    @Column(precision = 19, scale = 2, nullable = false)
-    private BigDecimal limitAmount;
-    
+
     @Column(nullable = false)
-    private LocalDate startDate;
-    
+    private BigDecimal limit;
+
     @Column(nullable = false)
-    private LocalDate endDate;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "categoria_id", nullable = false)
-    private Categoria categoria;
-    
+    private BigDecimal spent;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BudgetPeriod period;
+
+    @Column
+    private String description;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    
-    @Column(columnDefinition = "TEXT")
-    private String description;
-    
-    @Column(name = "created_at", nullable = false, updatable = false)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
-    @Column(name = "updated_at")
+
+    @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
-    
-    @PrePersist
-    private void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-    
-    @PreUpdate
-    private void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+
+    public enum BudgetPeriod {
+        MONTHLY, QUARTERLY, YEARLY
     }
 }
