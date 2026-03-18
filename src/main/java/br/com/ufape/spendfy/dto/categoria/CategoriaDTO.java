@@ -1,29 +1,35 @@
-package br.com.ufape.spendfy.dto.categoria;
+package br.com.ufape.spendfy.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
+import br.com.ufape.spendfy.entity.Category;
+
 import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CategoriaDTO {
-    private String id;
-    
+@Builder
+public class CategoryDTO {
+
+    private Long id;
+
     @NotBlank(message = "Category name is required")
     private String name;
-    
+
     private String description;
-    
-    @Pattern(regexp = "^#[A-Fa-f0-9]{6}$", message = "Color must be a valid hex color code")
+
     private String color;
-    
+
+    private String icon;
+
     @NotBlank(message = "Category type is required")
     private String type;
-    
+
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 }
