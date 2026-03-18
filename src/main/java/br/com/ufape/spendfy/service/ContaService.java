@@ -1,96 +1,111 @@
 package br.com.ufape.spendfy.service;
 
-import br.com.ufape.spendfy.dto.conta.ContaDTO;
-import br.com.ufape.spendfy.entity.Conta;
-import br.com.ufape.spendfy.entity.ContaType;
-import br.com.ufape.spendfy.entity.User;
-import br.com.ufape.spendfy.exception.DuplicateResourceException;
-import br.com.ufape.spendfy.exception.ResourceNotFoundException;
-import br.com.ufape.spendfy.mapper.EntityMapper;
-import br.com.ufape.spendfy.repository.ContaRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import br.com.ufape.spendfy.dto.AccountDTO;
+import br.com.ufape.spendfy.entity.Account;
+import br.com.ufape.spendfy.entity.User;
+import br.com.ufape.spendfy.exception.ResourceNotFoundException;
+import br.com.ufape.spendfy.repository.AccountRepository;
+import br.com.ufape.spendfy.repository.UserRepository;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
-public class ContaService {
-    
-    private final ContaRepository contaRepository;
-    private final UserService userService;
-    private final EntityMapper mapper;
-    
-    public ContaDTO createConta(ContaDTO dto, String userId) {
-        User user = userService.findUserById(userId);
-        
-        if (contaRepository.existsByUserIdAndName(userId, dto.getName())) {
-            throw new DuplicateResourceException("Account with name already exists: " + dto.getName());
-        }
-        
-        Conta conta = mapper.toContaEntity(dto, user);
-        if (conta.getInitialBalance() != null) {
-            conta.setBalance(conta.getInitialBalance());
-        }
-        
-        Conta savedConta = contaRepository.save(conta);
-        return mapper.toContaDTO(savedConta);
+public class AccountService {
+
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    public AccountDTO createAccount(AccountDTO accountDTO, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Account account = Account.builder()
+            .name(accountDTO.getName())
+            .type(accountDTO.getType())
+            .balance(accountDTO.getBalance())
+            .description(accountDTO.getDescription())
+            .user(user)
+            .build();
+
+        Account saved = accountRepository.save(account);
+        return mapToDTO(saved);
     }
-    
-    @Transactional(readOnly = true)
-    public ContaDTO getContaById(String id, String userId) {
-        Conta conta = contaRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Account", "id", id));
-        return mapper.toContaDTO(conta);
-    }
-    
-    @Transactional(readOnly = true)
-    public List<ContaDTO> getAllContasByUser(String userId) {
-        userService.findUserById(userId);
-        return contaRepository.findByUserId(userId)
+
+    public List<AccountDTO> getAccountsByUser(String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return accountRepository.findByUser(user)
             .stream()
-            .map(mapper::toContaDTO)
+            .map(this::mapToDTO)
             .collect(Collectors.toList());
     }
-    
-    @Transactional(readOnly = true)
-    public List<ContaDTO> getActiveContasByUser(String userId) {
-        userService.findUserById(userId);
-        return contaRepository.findByUserIdAndActiveTrue(userId)
-            .stream()
-            .map(mapper::toContaDTO)
-            .collect(Collectors.toList());
-    }
-    
-    public ContaDTO updateConta(String id, ContaDTO dto, String userId) {
-        Conta conta = contaRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Account", "id", id));
-        
-        if (!conta.getName().equals(dto.getName()) && 
-            contaRepository.existsByUserIdAndName(userId, dto.getName())) {
-            throw new DuplicateResourceException("Account with name already exists: " + dto.getName());
+
+    public AccountDTO getAccountById(Long id, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Account account = accountRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+
+        if (!account.getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Unauthorized access to account");
         }
-        
-        conta.setName(dto.getName());
-        conta.setDescription(dto.getDescription());
-        conta.setType(ContaType.valueOf(dto.getType()));
-        conta.setActive(dto.getActive() != null ? dto.getActive() : true);
-        
-        Conta updatedConta = contaRepository.save(conta);
-        return mapper.toContaDTO(updatedConta);
+
+        return mapToDTO(account);
     }
-    
-    public void deleteConta(String id, String userId) {
-        Conta conta = contaRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Account", "id", id));
-        conta.setActive(false);
-        contaRepository.save(conta);
+
+    public AccountDTO updateAccount(Long id, AccountDTO accountDTO, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Account account = accountRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+
+        if (!account.getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Unauthorized access to account");
+        }
+
+        account.setName(accountDTO.getName());
+        account.setType(accountDTO.getType());
+        account.setBalance(accountDTO.getBalance());
+        account.setDescription(accountDTO.getDescription());
+
+        Account updated = accountRepository.save(account);
+        return mapToDTO(updated);
     }
-    
-    public Conta findContaById(String id) {
-        return contaRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Account", "id", id));
+
+    public void deleteAccount(Long id, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Account account = accountRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+
+        if (!account.getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Unauthorized access to account");
+        }
+
+        accountRepository.delete(account);
+    }
+
+    private AccountDTO mapToDTO(Account account) {
+        return AccountDTO.builder()
+            .id(account.getId())
+            .name(account.getName())
+            .type(account.getType())
+            .balance(account.getBalance())
+            .description(account.getDescription())
+            .createdAt(account.getCreatedAt())
+            .updatedAt(account.getUpdatedAt())
+            .build();
     }
 }
