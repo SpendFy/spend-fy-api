@@ -1,74 +1,54 @@
 package br.com.ufape.spendfy.controller;
 
-import br.com.ufape.spendfy.dto.orcamento.OrcamentoDTO;
-import br.com.ufape.spendfy.service.OrcamentoService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import br.com.ufape.spendfy.dto.BudgetDTO;
+import br.com.ufape.spendfy.service.BudgetService;
+import jakarta.validation.Valid;
+
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/budgets")
-@RequiredArgsConstructor
-@Tag(name = "Budgets", description = "Budget management endpoints")
-public class OrcamentoController {
-    
-    private final OrcamentoService orcamentoService;
-    
+@RequestMapping("/api/budgets")
+@CrossOrigin(origins = "*", maxAge = 3600)
+public class BudgetController {
+
+    @Autowired
+    private BudgetService budgetService;
+
     @PostMapping
-    @Operation(summary = "Create a new budget", description = "Create a new spending budget for a category")
-    public ResponseEntity<OrcamentoDTO> createOrcamento(
-            @Valid @RequestBody OrcamentoDTO dto,
-            @RequestHeader("X-User-Id") String userId) {
-        OrcamentoDTO orcamento = orcamentoService.createOrcamento(dto, userId);
-        return new ResponseEntity<>(orcamento, HttpStatus.CREATED);
+    public ResponseEntity<BudgetDTO> createBudget(@Valid @RequestBody BudgetDTO budgetDTO, Authentication authentication) {
+        BudgetDTO created = budgetService.createBudget(budgetDTO, authentication.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
-    
-    @GetMapping("/{id}")
-    @Operation(summary = "Get budget by ID", description = "Retrieve a budget by its unique ID")
-    public ResponseEntity<OrcamentoDTO> getOrcamentoById(
-            @PathVariable String id,
-            @RequestHeader("X-User-Id") String userId) {
-        OrcamentoDTO orcamento = orcamentoService.getOrcamentoById(id, userId);
-        return ResponseEntity.ok(orcamento);
-    }
-    
+
     @GetMapping
-    @Operation(summary = "Get all budgets", description = "Retrieve all budgets for the authenticated user")
-    public ResponseEntity<List<OrcamentoDTO>> getAllOrcamentos(@RequestHeader("X-User-Id") String userId) {
-        List<OrcamentoDTO> orcamentos = orcamentoService.getAllOrcamentosByUser(userId);
-        return ResponseEntity.ok(orcamentos);
+    public ResponseEntity<List<BudgetDTO>> getAllBudgets(Authentication authentication) {
+        List<BudgetDTO> budgets = budgetService.getBudgetsByUser(authentication.getName());
+        return ResponseEntity.ok(budgets);
     }
-    
-    @GetMapping("/categoria/{categoriaId}")
-    @Operation(summary = "Get budgets by category", description = "Retrieve all budgets for a specific category")
-    public ResponseEntity<List<OrcamentoDTO>> getOrcamentosByCategoria(
-            @PathVariable String categoriaId,
-            @RequestHeader("X-User-Id") String userId) {
-        List<OrcamentoDTO> orcamentos = orcamentoService.getOrcamentosByCategoria(userId, categoriaId);
-        return ResponseEntity.ok(orcamentos);
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BudgetDTO> getBudgetById(@PathVariable Long id, Authentication authentication) {
+        BudgetDTO budget = budgetService.getBudgetById(id, authentication.getName());
+        return ResponseEntity.ok(budget);
     }
-    
+
     @PutMapping("/{id}")
-    @Operation(summary = "Update budget", description = "Update an existing budget")
-    public ResponseEntity<OrcamentoDTO> updateOrcamento(
-            @PathVariable String id,
-            @Valid @RequestBody OrcamentoDTO dto,
-            @RequestHeader("X-User-Id") String userId) {
-        OrcamentoDTO orcamento = orcamentoService.updateOrcamento(id, dto, userId);
-        return ResponseEntity.ok(orcamento);
+    public ResponseEntity<BudgetDTO> updateBudget(
+            @PathVariable Long id,
+            @Valid @RequestBody BudgetDTO budgetDTO,
+            Authentication authentication) {
+        BudgetDTO updated = budgetService.updateBudget(id, budgetDTO, authentication.getName());
+        return ResponseEntity.ok(updated);
     }
-    
+
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete budget", description = "Delete a budget")
-    public ResponseEntity<Void> deleteOrcamento(
-            @PathVariable String id,
-            @RequestHeader("X-User-Id") String userId) {
-        orcamentoService.deleteOrcamento(id, userId);
+    public ResponseEntity<Void> deleteBudget(@PathVariable Long id, Authentication authentication) {
+        budgetService.deleteBudget(id, authentication.getName());
         return ResponseEntity.noContent().build();
     }
 }
