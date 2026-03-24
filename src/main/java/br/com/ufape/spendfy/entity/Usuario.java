@@ -1,5 +1,6 @@
 package br.com.ufape.spendfy.entity;
 
+import br.com.ufape.spendfy.entity.enums.StatusUsuario;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,8 +40,9 @@ public class Usuario implements UserDetails {
     @Column(nullable = false)
     private String senha;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String status;
+    private StatusUsuario status;
 
     @CreationTimestamp
     @Column(name = "data_cadastro", nullable = false, updatable = false)
@@ -93,7 +95,7 @@ public class Usuario implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return "ATIVO".equals(status);
+        return StatusUsuario.ATIVO.equals(status);
     }
 
     @Override
@@ -103,6 +105,6 @@ public class Usuario implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return "ATIVO".equals(status);
+        return StatusUsuario.ATIVO.equals(status);
     }
 }
