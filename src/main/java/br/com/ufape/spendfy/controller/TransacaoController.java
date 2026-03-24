@@ -2,17 +2,23 @@ package br.com.ufape.spendfy.controller;
 
 import br.com.ufape.spendfy.dto.transacao.TransacaoRequest;
 import br.com.ufape.spendfy.dto.transacao.TransacaoResponse;
+import br.com.ufape.spendfy.enums.StatusTransacao;
+import br.com.ufape.spendfy.enums.TipoTransacao;
 import br.com.ufape.spendfy.service.TransacaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/transacoes")
@@ -30,9 +36,24 @@ public class TransacaoController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar transações", description = "Lista todas as transações do usuário autenticado")
-    public ResponseEntity<List<TransacaoResponse>> listarTodas() {
-        return ResponseEntity.ok(transacaoService.listarTodas());
+    @Operation(summary = "Listar transações", description = "Lista transações com filtros opcionais e paginação")
+    public ResponseEntity<Page<TransacaoResponse>> listarTodas(
+            @RequestParam(required = false) TipoTransacao tipo,
+            @RequestParam(required = false) StatusTransacao status,
+            @RequestParam(required = false) Long categoriaId,
+            @RequestParam(required = false) Long contaId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
+            @PageableDefault(size = 20, sort = "data") Pageable pageable) {
+
+        boolean hasFilter = tipo != null || status != null || categoriaId != null
+                || contaId != null || dataInicio != null || dataFim != null;
+
+        Page<TransacaoResponse> result = hasFilter
+                ? transacaoService.listarComFiltros(tipo, status, categoriaId, contaId, dataInicio, dataFim, pageable)
+                : transacaoService.listarTodas(pageable);
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
@@ -45,13 +66,12 @@ public class TransacaoController {
     @Operation(summary = "Atualizar transação", description = "Atualiza uma transação existente")
     public ResponseEntity<TransacaoResponse> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody TransacaoRequest request
-    ) {
+            @Valid @RequestBody TransacaoRequest request) {
         return ResponseEntity.ok(transacaoService.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Deletar transação", description = "Deleta uma transação existente")
+    @Operation(summary = "Deletar transação", description = "Realiza soft delete de uma transação existente")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         transacaoService.deletar(id);
         return ResponseEntity.noContent().build();

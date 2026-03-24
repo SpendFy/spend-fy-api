@@ -1,5 +1,6 @@
 package br.com.ufape.spendfy.dto.conta;
 
+import br.com.ufape.spendfy.enums.TipoConta;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +17,7 @@ public class ContaResponse {
 
     private Long id;
     private String nome;
-    private String tipo;
+    private TipoConta tipo;
     private BigDecimal saldoInicial;
     private BigDecimal saldoAtual;
     private Long idUsuario;

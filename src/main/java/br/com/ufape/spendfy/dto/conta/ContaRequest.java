@@ -1,5 +1,6 @@
 package br.com.ufape.spendfy.dto.conta;
 
+import br.com.ufape.spendfy.enums.TipoConta;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,9 +22,8 @@ public class ContaRequest {
     @Size(max = 50, message = "Nome deve ter no máximo 50 caracteres")
     private String nome;
 
-    @NotBlank(message = "Tipo é obrigatório")
-    @Size(max = 30, message = "Tipo deve ter no máximo 30 caracteres")
-    private String tipo;
+    @NotNull(message = "Tipo é obrigatório")
+    private TipoConta tipo;
 
     @NotNull(message = "Saldo inicial é obrigatório")
     @DecimalMin(value = "0.0", message = "Saldo inicial não pode ser negativo")
