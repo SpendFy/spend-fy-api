@@ -1,6 +1,6 @@
 package br.com.ufape.spendfy.dto.alerta;
 
-import br.com.ufape.spendfy.enums.TipoAlerta;
+import br.com.ufape.spendfy.entity.enums.TipoAlerta;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -6,6 +6,8 @@ import br.com.ufape.spendfy.entity.Categoria;
 import br.com.ufape.spendfy.entity.Conta;
 import br.com.ufape.spendfy.entity.Transacao;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.RecorrenciaTransacao;
+import br.com.ufape.spendfy.entity.enums.StatusTransacao;
 import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import br.com.ufape.spendfy.exception.BusinessException;
 import br.com.ufape.spendfy.exception.ResourceNotFoundException;
@@ -13,12 +15,17 @@ import br.com.ufape.spendfy.repository.CategoriaRepository;
 import br.com.ufape.spendfy.repository.ContaRepository;
 import br.com.ufape.spendfy.repository.TransacaoRepository;
 import br.com.ufape.spendfy.repository.UsuarioRepository;
+import br.com.ufape.spendfy.specification.TransacaoSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -66,6 +73,14 @@ public class TransacaoService {
             throw new BusinessException("Categoria não pertence ao usuário autenticado");
         }
 
+        RecorrenciaTransacao recorrencia = request.getRecorrencia() != null
+                ? request.getRecorrencia() : RecorrenciaTransacao.NENHUMA;
+
+        LocalDate dataProximaOcorrencia = null;
+        if (recorrencia != RecorrenciaTransacao.NENHUMA) {
+            dataProximaOcorrencia = calcularProximaOcorrencia(request.getData(), recorrencia);
+        }
+
         Transacao transacao = Transacao.builder()
                 .tipo(request.getTipo())
                 .data(request.getData())
@@ -73,6 +88,8 @@ public class TransacaoService {
                 .descricao(request.getDescricao())
                 .observacao(request.getObservacao())
                 .status(request.getStatus())
+                .recorrencia(recorrencia)
+                .dataProximaOcorrencia(dataProximaOcorrencia)
                 .usuario(usuario)
                 .conta(conta)
                 .categoria(categoria)
@@ -90,6 +107,27 @@ public class TransacaoService {
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransacaoResponse> listarTodas(Pageable pageable) {
+        Usuario usuario = getUsuarioAutenticado();
+        return transacaoRepository.findByUsuarioId(usuario.getId(), pageable)
+                .map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransacaoResponse> listarComFiltros(TipoTransacao tipo, StatusTransacao status,
+            Long categoriaId, Long contaId, LocalDate dataInicio, LocalDate dataFim, Pageable pageable) {
+        Usuario usuario = getUsuarioAutenticado();
+        Specification<Transacao> spec = Specification.where(TransacaoSpecification.doUsuario(usuario.getId()))
+                .and(TransacaoSpecification.comTipo(tipo))
+                .and(TransacaoSpecification.comStatus(status))
+                .and(TransacaoSpecification.daCategoria(categoriaId))
+                .and(TransacaoSpecification.daConta(contaId))
+                .and(TransacaoSpecification.dataInicio(dataInicio))
+                .and(TransacaoSpecification.dataFim(dataFim));
+        return transacaoRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -165,6 +203,8 @@ public class TransacaoService {
                 .descricao(transacao.getDescricao())
                 .observacao(transacao.getObservacao())
                 .status(transacao.getStatus())
+                .recorrencia(transacao.getRecorrencia())
+                .dataProximaOcorrencia(transacao.getDataProximaOcorrencia())
                 .idUsuario(transacao.getUsuario().getId())
                 .idConta(transacao.getConta().getId())
                 .nomeConta(transacao.getConta().getNome())
@@ -173,5 +213,15 @@ public class TransacaoService {
                 .dataCadastro(transacao.getDataCadastro())
                 .dataAtualizacao(transacao.getDataAtualizacao())
                 .build();
+    }
+
+    private LocalDate calcularProximaOcorrencia(LocalDate data, RecorrenciaTransacao recorrencia) {
+        return switch (recorrencia) {
+            case DIARIA -> data.plusDays(1);
+            case SEMANAL -> data.plusWeeks(1);
+            case MENSAL -> data.plusMonths(1);
+            case ANUAL -> data.plusYears(1);
+            default -> null;
+        };
     }
 }

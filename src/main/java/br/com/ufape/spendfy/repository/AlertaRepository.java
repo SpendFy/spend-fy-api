@@ -1,7 +1,7 @@
 package br.com.ufape.spendfy.repository;
 
 import br.com.ufape.spendfy.entity.Alerta;
-import br.com.ufape.spendfy.enums.TipoAlerta;
+import br.com.ufape.spendfy.entity.enums.TipoAlerta;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

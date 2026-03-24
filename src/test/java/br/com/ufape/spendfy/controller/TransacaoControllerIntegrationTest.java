@@ -210,9 +210,9 @@ class TransacaoControllerIntegrationTest {
 
         mockMvc.perform(get("/api/transacoes"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].tipo").value("DESPESA"))
-                .andExpect(jsonPath("$[1].tipo").value("RECEITA"));
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.content[0].tipo").value("DESPESA"))
+                .andExpect(jsonPath("$.content[1].tipo").value("RECEITA"));
     }
 
     @Test
@@ -221,7 +221,7 @@ class TransacaoControllerIntegrationTest {
     void deveRetornarListaVaziaQuandoNaoHaTransacoes() throws Exception {
         mockMvc.perform(get("/api/transacoes"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(jsonPath("$.content", hasSize(0)));
     }
 
     @Test

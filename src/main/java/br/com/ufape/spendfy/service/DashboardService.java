@@ -6,7 +6,7 @@ import br.com.ufape.spendfy.dto.dashboard.CategoriaGastoResponse;
 import br.com.ufape.spendfy.dto.dashboard.DashboardResponse;
 import br.com.ufape.spendfy.dto.orcamento.OrcamentoResponse;
 import br.com.ufape.spendfy.entity.Usuario;
-import br.com.ufape.spendfy.enums.TipoTransacao;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import br.com.ufape.spendfy.repository.OrcamentoRepository;
 import br.com.ufape.spendfy.repository.TransacaoRepository;
 import lombok.RequiredArgsConstructor;

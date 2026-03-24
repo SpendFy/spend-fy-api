@@ -1,5 +1,6 @@
 package br.com.ufape.spendfy.dto.transacao;
 
+import br.com.ufape.spendfy.entity.enums.RecorrenciaTransacao;
 import br.com.ufape.spendfy.entity.enums.StatusTransacao;
 import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,8 @@ public class TransacaoResponse {
     private String nomeConta;
     private Long idCategoria;
     private String nomeCategoria;
+    private RecorrenciaTransacao recorrencia;
+    private LocalDate dataProximaOcorrencia;
     private LocalDateTime dataCadastro;
     private LocalDateTime dataAtualizacao;
 }

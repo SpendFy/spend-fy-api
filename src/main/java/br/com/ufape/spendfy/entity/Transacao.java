@@ -1,5 +1,6 @@
 package br.com.ufape.spendfy.entity;
 
+import br.com.ufape.spendfy.entity.enums.RecorrenciaTransacao;
 import br.com.ufape.spendfy.entity.enums.StatusTransacao;
 import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import jakarta.persistence.*;
@@ -46,6 +47,14 @@ public class Transacao {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StatusTransacao status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    @Builder.Default
+    private RecorrenciaTransacao recorrencia = RecorrenciaTransacao.NENHUMA;
+
+    @Column(name = "data_proxima_ocorrencia")
+    private LocalDate dataProximaOcorrencia;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)
