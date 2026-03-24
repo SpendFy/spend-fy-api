@@ -4,6 +4,7 @@ import br.com.ufape.spendfy.dto.auth.AuthResponse;
 import br.com.ufape.spendfy.dto.auth.LoginRequest;
 import br.com.ufape.spendfy.dto.auth.RegisterRequest;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.StatusUsuario;
 import br.com.ufape.spendfy.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,7 +30,7 @@ public class AuthService {
                 .nome(request.getNome())
                 .email(request.getEmail())
                 .senha(passwordEncoder.encode(request.getSenha()))
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
 
         usuario = usuarioRepository.save(usuario);

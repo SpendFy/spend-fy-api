@@ -17,6 +17,8 @@ public class OrcamentoResponse {
 
     private Long id;
     private BigDecimal valorLimite;
+    private BigDecimal valorGasto;
+    private BigDecimal valorRestante;
     private LocalDate dataInicio;
     private LocalDate dataFim;
     private Long idUsuario;

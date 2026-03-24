@@ -1,6 +1,7 @@
 package br.com.ufape.spendfy.service;
 
 import br.com.ufape.spendfy.dto.transacao.TransacaoResponse;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
@@ -46,16 +47,16 @@ public class RelatorioService {
 
         for (TransacaoResponse t : transacoes) {
             table.addCell(t.getData().format(dateFormatter));
-            
-            String horaFormatada = (t.getDataCadastro() != null) 
-                    ? t.getDataCadastro().format(timeFormatter) 
+
+            String horaFormatada = (t.getDataCadastro() != null)
+                    ? t.getDataCadastro().format(timeFormatter)
                     : "--:--:--";
             table.addCell(horaFormatada);
-            table.addCell(t.getDescricao());
-            table.addCell(t.getNomeCategoria());
+            table.addCell(t.getDescricao() != null ? t.getDescricao() : "");
+            table.addCell(t.getNomeCategoria() != null ? t.getNomeCategoria() : "");
             table.addCell(t.getNomeConta() != null ? t.getNomeConta() : "—");
-            
-            String valorPrefixo = t.getTipo().equals("RECEITA") ? "+ R$ " : "- R$ ";
+
+            String valorPrefixo = TipoTransacao.RECEITA.equals(t.getTipo()) ? "+ R$ " : "- R$ ";
             table.addCell(valorPrefixo + t.getValor());
         }
 
@@ -71,14 +72,14 @@ public class RelatorioService {
 
         csv.append("Data;Hora;Descrição;Categoria;Conta;Tipo;Valor\n");
 
-        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        java.time.format.DateTimeFormatter timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss");
-        
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+
         for (TransacaoResponse t : transacoes) {
             csv.append(t.getData().format(dateFormatter)).append(";");
             csv.append(t.getDataCadastro() != null ? t.getDataCadastro().format(timeFormatter) : "--:--:--").append(";");
-            csv.append(t.getDescricao()).append(";");
-            csv.append(t.getNomeCategoria()).append(";");
+            csv.append(t.getDescricao() != null ? t.getDescricao() : "").append(";");
+            csv.append(t.getNomeCategoria() != null ? t.getNomeCategoria() : "").append(";");
             csv.append(t.getNomeConta() != null ? t.getNomeConta() : "").append(";");
             csv.append(t.getTipo()).append(";");
             csv.append(t.getValor()).append("\n");
