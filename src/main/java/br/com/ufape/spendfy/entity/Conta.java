@@ -1,5 +1,7 @@
 package br.com.ufape.spendfy.entity;
 
+import br.com.ufape.spendfy.enums.TipoConta;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,8 +14,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "contas")
@@ -31,8 +31,9 @@ public class Conta {
     @Column(nullable = false, length = 50)
     private String nome;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
-    private String tipo;
+    private TipoConta tipo;
 
     @Column(name = "saldo_inicial", nullable = false, precision = 15, scale = 2)
     private BigDecimal saldoInicial;
