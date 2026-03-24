@@ -1,5 +1,7 @@
 package br.com.ufape.spendfy.dto.transacao;
 
+import br.com.ufape.spendfy.entity.enums.StatusTransacao;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,12 +18,12 @@ import java.time.LocalDateTime;
 public class TransacaoResponse {
 
     private Long id;
-    private String tipo;
+    private TipoTransacao tipo;
     private LocalDate data;
     private BigDecimal valor;
     private String descricao;
     private String observacao;
-    private String status;
+    private StatusTransacao status;
     private Long idUsuario;
     private Long idConta;
     private String nomeConta;

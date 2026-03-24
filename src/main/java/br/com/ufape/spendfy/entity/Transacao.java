@@ -1,5 +1,7 @@
 package br.com.ufape.spendfy.entity;
 
+import br.com.ufape.spendfy.entity.enums.StatusTransacao;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,8 +27,9 @@ public class Transacao {
     @Column(name = "id_transacao")
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String tipo;
+    private TipoTransacao tipo;
 
     @Column(nullable = false)
     private LocalDate data;
@@ -40,8 +43,9 @@ public class Transacao {
     @Column(length = 255)
     private String observacao;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String status;
+    private StatusTransacao status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)

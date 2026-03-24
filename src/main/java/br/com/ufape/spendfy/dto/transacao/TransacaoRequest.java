@@ -1,6 +1,10 @@
 package br.com.ufape.spendfy.dto.transacao;
 
-import jakarta.validation.constraints.*;
+import br.com.ufape.spendfy.entity.enums.StatusTransacao;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,9 +19,8 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class TransacaoRequest {
 
-    @NotBlank(message = "Tipo é obrigatório")
-    @Size(max = 20, message = "Tipo deve ter no máximo 20 caracteres")
-    private String tipo;
+    @NotNull(message = "Tipo é obrigatório")
+    private TipoTransacao tipo;
 
     @NotNull(message = "Data é obrigatória")
     private LocalDate data;
@@ -32,9 +35,8 @@ public class TransacaoRequest {
     @Size(max = 255, message = "Observação deve ter no máximo 255 caracteres")
     private String observacao;
 
-    @NotBlank(message = "Status é obrigatório")
-    @Size(max = 20, message = "Status deve ter no máximo 20 caracteres")
-    private String status;
+    @NotNull(message = "Status é obrigatório")
+    private StatusTransacao status;
 
     @NotNull(message = "ID da conta é obrigatório")
     private Long idConta;
