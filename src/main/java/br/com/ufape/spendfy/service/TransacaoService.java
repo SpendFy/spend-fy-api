@@ -6,6 +6,7 @@ import br.com.ufape.spendfy.entity.Categoria;
 import br.com.ufape.spendfy.entity.Conta;
 import br.com.ufape.spendfy.entity.Transacao;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import br.com.ufape.spendfy.exception.BusinessException;
 import br.com.ufape.spendfy.exception.ResourceNotFoundException;
 import br.com.ufape.spendfy.repository.CategoriaRepository;
@@ -17,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,21 +48,13 @@ public class TransacaoService {
             throw new BusinessException("Conta não pertence ao usuário autenticado");
         }
 
-        if ("DESPESA".equals(request.getTipo())) {
-            java.math.BigDecimal receitas = conta.getTransacoes().stream()
-                    .filter(t -> "RECEITA".equals(t.getTipo()))
-                    .map(br.com.ufape.spendfy.entity.Transacao::getValor)
-                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-
-            java.math.BigDecimal despesas = conta.getTransacoes().stream()
-                    .filter(t -> "DESPESA".equals(t.getTipo()))
-                    .map(br.com.ufape.spendfy.entity.Transacao::getValor)
-                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-
-            java.math.BigDecimal saldoDisponivel = conta.getSaldoInicial().add(receitas).subtract(despesas);
+        if (TipoTransacao.DESPESA.equals(request.getTipo())) {
+            BigDecimal receitas = transacaoRepository.sumValorByContaIdAndTipo(conta.getId(), TipoTransacao.RECEITA);
+            BigDecimal despesas = transacaoRepository.sumValorByContaIdAndTipo(conta.getId(), TipoTransacao.DESPESA);
+            BigDecimal saldoDisponivel = conta.getSaldoInicial().add(receitas).subtract(despesas);
 
             if (request.getValor().compareTo(saldoDisponivel) > 0) {
-                throw new BusinessException("Saldo insuficiente na conta " + conta.getNome() + 
+                throw new BusinessException("Saldo insuficiente na conta " + conta.getNome() +
                                             ". Saldo disponível: R$ " + saldoDisponivel);
             }
         }

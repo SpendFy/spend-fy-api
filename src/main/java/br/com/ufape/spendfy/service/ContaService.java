@@ -3,11 +3,12 @@ package br.com.ufape.spendfy.service;
 import br.com.ufape.spendfy.dto.conta.ContaRequest;
 import br.com.ufape.spendfy.dto.conta.ContaResponse;
 import br.com.ufape.spendfy.entity.Conta;
-import br.com.ufape.spendfy.entity.Transacao;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import br.com.ufape.spendfy.exception.BusinessException;
 import br.com.ufape.spendfy.exception.ResourceNotFoundException;
 import br.com.ufape.spendfy.repository.ContaRepository;
+import br.com.ufape.spendfy.repository.TransacaoRepository;
 import br.com.ufape.spendfy.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +25,7 @@ public class ContaService {
 
     private final ContaRepository contaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final TransacaoRepository transacaoRepository;
 
     private Usuario getUsuarioAutenticado() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -111,16 +113,8 @@ public class ContaService {
     }
 
     private ContaResponse toResponse(Conta conta) {
-        BigDecimal receitas = conta.getTransacoes().stream()
-                .filter(t -> "RECEITA".equals(t.getTipo()))
-                .map(Transacao::getValor)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal despesas = conta.getTransacoes().stream()
-                .filter(t -> "DESPESA".equals(t.getTipo()))
-                .map(Transacao::getValor)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
+        BigDecimal receitas = transacaoRepository.sumValorByContaIdAndTipo(conta.getId(), TipoTransacao.RECEITA);
+        BigDecimal despesas = transacaoRepository.sumValorByContaIdAndTipo(conta.getId(), TipoTransacao.DESPESA);
         BigDecimal saldoAtual = conta.getSaldoInicial().add(receitas).subtract(despesas);
 
         return ContaResponse.builder()

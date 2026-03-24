@@ -5,16 +5,19 @@ import br.com.ufape.spendfy.dto.orcamento.OrcamentoResponse;
 import br.com.ufape.spendfy.entity.Categoria;
 import br.com.ufape.spendfy.entity.Orcamento;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import br.com.ufape.spendfy.exception.BusinessException;
 import br.com.ufape.spendfy.exception.ResourceNotFoundException;
 import br.com.ufape.spendfy.repository.CategoriaRepository;
 import br.com.ufape.spendfy.repository.OrcamentoRepository;
+import br.com.ufape.spendfy.repository.TransacaoRepository;
 import br.com.ufape.spendfy.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +28,7 @@ public class OrcamentoService {
     private final OrcamentoRepository orcamentoRepository;
     private final CategoriaRepository categoriaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final TransacaoRepository transacaoRepository;
 
     private Usuario getUsuarioAutenticado() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -119,9 +123,7 @@ public class OrcamentoService {
                 request.getIdCategoria(),
                 request.getDataInicio(),
                 request.getDataFim()
-        );
-
-        overlapping = overlapping.stream()
+        ).stream()
                 .filter(o -> !o.getId().equals(id))
                 .collect(Collectors.toList());
 
@@ -153,9 +155,20 @@ public class OrcamentoService {
     }
 
     private OrcamentoResponse toResponse(Orcamento orcamento) {
+        BigDecimal valorGasto = transacaoRepository.sumValorByCategoriaAndPeriodoAndTipo(
+                orcamento.getCategoria().getId(),
+                orcamento.getUsuario().getId(),
+                orcamento.getDataInicio(),
+                orcamento.getDataFim(),
+                TipoTransacao.DESPESA
+        );
+        BigDecimal valorRestante = orcamento.getValorLimite().subtract(valorGasto);
+
         return OrcamentoResponse.builder()
                 .id(orcamento.getId())
                 .valorLimite(orcamento.getValorLimite())
+                .valorGasto(valorGasto)
+                .valorRestante(valorRestante)
                 .dataInicio(orcamento.getDataInicio())
                 .dataFim(orcamento.getDataFim())
                 .idUsuario(orcamento.getUsuario().getId())
