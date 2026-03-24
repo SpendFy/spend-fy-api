@@ -1,5 +1,6 @@
 package br.com.ufape.spendfy.dto.transacao;
 
+import br.com.ufape.spendfy.entity.enums.RecorrenciaTransacao;
 import br.com.ufape.spendfy.entity.enums.StatusTransacao;
 import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import jakarta.validation.constraints.DecimalMin;
@@ -43,4 +44,6 @@ public class TransacaoRequest {
 
     @NotNull(message = "ID da categoria é obrigatório")
     private Long idCategoria;
+
+    private RecorrenciaTransacao recorrencia;
 }

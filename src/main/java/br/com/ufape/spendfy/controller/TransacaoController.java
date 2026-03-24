@@ -2,8 +2,8 @@ package br.com.ufape.spendfy.controller;
 
 import br.com.ufape.spendfy.dto.transacao.TransacaoRequest;
 import br.com.ufape.spendfy.dto.transacao.TransacaoResponse;
-import br.com.ufape.spendfy.enums.StatusTransacao;
-import br.com.ufape.spendfy.enums.TipoTransacao;
+import br.com.ufape.spendfy.entity.enums.StatusTransacao;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import br.com.ufape.spendfy.service.TransacaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

@@ -1,7 +1,7 @@
 package br.com.ufape.spendfy.service;
 
 import br.com.ufape.spendfy.entity.Transacao;
-import br.com.ufape.spendfy.enums.RecorrenciaTransacao;
+import br.com.ufape.spendfy.entity.enums.RecorrenciaTransacao;
 import br.com.ufape.spendfy.repository.TransacaoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

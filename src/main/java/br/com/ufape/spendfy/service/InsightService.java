@@ -7,7 +7,7 @@ import br.com.ufape.spendfy.dto.insight.ScoreResponse;
 import br.com.ufape.spendfy.dto.orcamento.OrcamentoResponse;
 import br.com.ufape.spendfy.entity.Categoria;
 import br.com.ufape.spendfy.entity.Usuario;
-import br.com.ufape.spendfy.enums.TipoTransacao;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import br.com.ufape.spendfy.repository.CategoriaRepository;
 import br.com.ufape.spendfy.repository.TransacaoRepository;
 import lombok.RequiredArgsConstructor;
@@ -110,7 +110,7 @@ public class InsightService {
         // Critério 2: Aderência a orçamentos (40 pontos)
         if (!orcamentos.isEmpty()) {
             long respeitados = orcamentos.stream()
-                    .filter(o -> o.getPercentualUtilizado().compareTo(BigDecimal.valueOf(100)) <= 0)
+                    .filter(o -> o.getValorRestante().compareTo(BigDecimal.ZERO) >= 0)
                     .count();
             int percentualRespeitado = (int) (respeitados * 100 / orcamentos.size());
             int pontosOrcamento = percentualRespeitado * 40 / 100;

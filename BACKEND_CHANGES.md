@@ -9,17 +9,19 @@
 
 ## ⚠️ BREAKING CHANGES — Leia primeiro
 
-Estas alterações **quebram** integrações existentes e precisam ser corrigidas no frontend imediatamente.
+Estas alterações **quebram** integrações existentes e precisam de correção imediata no frontend.
 
 ---
 
 ### 1. `GET /api/transacoes` — Agora retorna objeto paginado
 
+O endpoint que antes retornava um array simples agora retorna um objeto de paginação do Spring.
+
 **Antes:**
 ```json
 [
-  { "id": 1, "tipo": "DESPESA", ... },
-  { "id": 2, "tipo": "RECEITA", ... }
+  { "id": 1, "tipo": "DESPESA", "status": "CONFIRMADA", ... },
+  { "id": 2, "tipo": "RECEITA", "status": "CONFIRMADA", ... }
 ]
 ```
 
@@ -27,133 +29,43 @@ Estas alterações **quebram** integrações existentes e precisam ser corrigida
 ```json
 {
   "content": [
-    { "id": 1, "tipo": "DESPESA", ... },
-    { "id": 2, "tipo": "RECEITA", ... }
+    { "id": 1, "tipo": "DESPESA", "status": "CONFIRMADA", ... },
+    { "id": 2, "tipo": "RECEITA", "status": "CONFIRMADA", ... }
   ],
   "totalElements": 42,
   "totalPages": 3,
   "number": 0,
   "size": 20,
   "first": true,
-  "last": false
+  "last": false,
+  "empty": false
 }
 ```
 
 **Parâmetros de paginação (todos opcionais):**
 | Param | Tipo | Padrão | Descrição |
 |---|---|---|---|
-| `page` | int | 0 | Número da página (começa em 0) |
-| `size` | int | 20 | Itens por página |
+| `page` | int | `0` | Número da página (começa em 0) |
+| `size` | int | `20` | Itens por página |
 | `sort` | string | `data` | Campo de ordenação |
+| `sort` | string | `data,desc` | Ordenação decrescente por data |
 
-**Onde ajustar no frontend:**
-Qualquer lugar que faz `GET /transacoes` e trata a resposta como array — trocar por `.data.content`.
+**O que precisa mudar no frontend:**
+- Todo lugar que faz `GET /transacoes` e trata a resposta como array → trocar `.data` por `.data.content`
+- Usar `.data.totalPages`, `.data.number` e `.data.size` para controlar paginação real
 
----
-
-### 2. Campo `tipo` em Conta — Agora é enum
-
-**Antes:** String livre (`"Corrente"`, `"Poupança"`, etc.)
-**Agora:** Enum com valores fixos em maiúsculas:
-
-| Valor aceito | Descrição |
-|---|---|
-| `CORRENTE` | Conta corrente |
-| `POUPANCA` | Conta poupança |
-| `INVESTIMENTO` | Conta de investimento |
-| `CARTEIRA` | Carteira / dinheiro em espécie |
-| `OUTRO` | Outros tipos |
-
-> ⚠️ O valor `"OUTROS"` (com S) **não é aceito** — use `"OUTRO"` (sem S).
-
-**Impacto:** `POST /api/contas` e `PUT /api/contas/{id}` rejeitarão valores fora dessa lista com `400 Bad Request`. A resposta JSON retornará `"tipo": "CORRENTE"` (em maiúsculas), não `"Corrente"`.
-
----
-
-### 3. Campo `status` em Transação — Agora é enum
-
-**Antes:** String livre (`"CONFIRMADA"`, etc.)
-**Agora:** Enum com dois valores:
-
-| Valor aceito | Descrição |
-|---|---|
-| `PAGO` | Transação efetivada |
-| `PENDENTE` | Transação ainda não efetivada |
-
-> ⚠️ `"CONFIRMADA"` **não existe mais**. Migrar para `"PAGO"`.
-
----
-
-### 4. Campo `tipo` em Transação — Agora é enum (compatível, mas verifique)
-
-Os valores continuam os mesmos, mas agora são enums tipados:
-
-| Valor | Descrição |
-|---|---|
-| `DESPESA` | Saída de dinheiro |
-| `RECEITA` | Entrada de dinheiro |
-
-A resposta JSON continua retornando `"DESPESA"` / `"RECEITA"` como string — sem impacto se o frontend já usa esses valores.
-
----
-
-### 5. `DELETE /api/transacoes/{id}` — Agora é soft delete
-
-A transação **não é removida do banco**. O campo `deletedAt` é preenchido e a transação some de todas as listagens automaticamente. Para o frontend, o comportamento é idêntico — a resposta continua sendo `204 No Content`.
-
----
-
-## ✅ ALTERAÇÕES EM ENDPOINTS EXISTENTES
-
-### `GET /api/transacoes` — Filtros avançados
-
-Além da paginação, agora aceita filtros como query params. Todos são opcionais e combináveis:
-
-| Param | Tipo | Exemplo | Descrição |
-|---|---|---|---|
-| `tipo` | enum | `DESPESA` | Filtra por tipo |
-| `status` | enum | `PAGO` | Filtra por status |
-| `categoriaId` | Long | `3` | Filtra por categoria |
-| `contaId` | Long | `1` | Filtra por conta |
-| `dataInicio` | date | `2026-01-01` | A partir desta data (formato ISO) |
-| `dataFim` | date | `2026-01-31` | Até esta data (formato ISO) |
-
-**Exemplo de requisição com filtros:**
+**Exemplo paginado:**
 ```
-GET /api/transacoes?tipo=DESPESA&dataInicio=2026-03-01&dataFim=2026-03-31&size=10&page=0
+GET /api/transacoes?page=0&size=10&sort=data,desc
 ```
 
 ---
 
-### `POST /api/transacoes` e `PUT /api/transacoes/{id}` — Campo recorrência
+### 2. `TransacaoResponse` — Campos novos
 
-O body agora aceita o campo opcional `recorrencia`. Se omitido, assume `NENHUMA`.
+A resposta de transação agora inclui os campos `recorrencia` e `dataProximaOcorrencia`:
 
-**Body completo atualizado:**
-```json
-{
-  "tipo": "DESPESA",
-  "data": "2026-03-24",
-  "valor": 150.00,
-  "descricao": "Academia",
-  "observacao": "Mensalidade",
-  "status": "PAGO",
-  "recorrencia": "MENSAL",
-  "idConta": 1,
-  "idCategoria": 3
-}
-```
-
-**Valores de `recorrencia`:**
-| Valor | Descrição |
-|---|---|
-| `NENHUMA` | Não recorrente (padrão) |
-| `DIARIA` | Repete todo dia |
-| `SEMANAL` | Repete toda semana |
-| `MENSAL` | Repete todo mês |
-| `ANUAL` | Repete todo ano |
-
-**Resposta atualizada de Transação (`TransacaoResponse`):**
+**Antes:**
 ```json
 {
   "id": 1,
@@ -162,8 +74,7 @@ O body agora aceita o campo opcional `recorrencia`. Se omitido, assume `NENHUMA`
   "valor": 150.00,
   "descricao": "Academia",
   "observacao": "Mensalidade",
-  "status": "PAGO",
-  "recorrencia": "MENSAL",
+  "status": "CONFIRMADA",
   "idUsuario": 1,
   "idConta": 1,
   "nomeConta": "Nubank",
@@ -174,18 +85,56 @@ O body agora aceita o campo opcional `recorrencia`. Se omitido, assume `NENHUMA`
 }
 ```
 
+**Agora:**
+```json
+{
+  "id": 1,
+  "tipo": "DESPESA",
+  "data": "2026-03-24",
+  "valor": 150.00,
+  "descricao": "Academia",
+  "observacao": "Mensalidade",
+  "status": "CONFIRMADA",
+  "recorrencia": "MENSAL",
+  "dataProximaOcorrencia": "2026-04-24",
+  "idUsuario": 1,
+  "idConta": 1,
+  "nomeConta": "Nubank",
+  "idCategoria": 3,
+  "nomeCategoria": "Saúde",
+  "dataCadastro": "2026-03-24T10:00:00",
+  "dataAtualizacao": "2026-03-24T10:00:00"
+}
+```
+
+| Campo novo | Tipo | Pode ser nulo? | Descrição |
+|---|---|---|---|
+| `recorrencia` | string (enum) | Não | `NENHUMA` se a transação não se repete |
+| `dataProximaOcorrencia` | date (`yyyy-MM-dd`) | Sim | `null` se `recorrencia = NENHUMA` |
+
 ---
 
-### `GET /api/orcamentos` — Response atualizado com progresso
+### 3. `OrcamentoResponse` — Campo `percentualUtilizado` substituído
 
-O `OrcamentoResponse` agora inclui dois campos calculados automaticamente pelo backend:
+O campo calculado do orçamento mudou de nome e foi expandido.
 
+**Antes:**
+```json
+{
+  "id": 1,
+  "valorLimite": 500.00,
+  "percentualUtilizado": 64.00,
+  ...
+}
+```
+
+**Agora:**
 ```json
 {
   "id": 1,
   "valorLimite": 500.00,
   "valorGasto": 320.00,
-  "percentualUtilizado": 64.00,
+  "valorRestante": 180.00,
   "dataInicio": "2026-03-01",
   "dataFim": "2026-03-31",
   "idUsuario": 1,
@@ -196,22 +145,126 @@ O `OrcamentoResponse` agora inclui dois campos calculados automaticamente pelo b
 }
 ```
 
-| Campo novo | Tipo | Descrição |
+| Campo | Tipo | Descrição |
 |---|---|---|
-| `valorGasto` | BigDecimal | Total gasto no período do orçamento |
-| `percentualUtilizado` | BigDecimal | Percentual do limite já consumido (ex: `64.00` = 64%) |
+| `valorGasto` | BigDecimal | Total de despesas na categoria dentro do período do orçamento |
+| `valorRestante` | BigDecimal | `valorLimite - valorGasto` (negativo = orçamento estourado) |
+
+> ⚠️ O campo `percentualUtilizado` **não existe mais**. Para calcular o percentual no frontend: `(valorGasto / valorLimite) * 100`.
+
+**Onde impacta:**
+- `GET /api/orcamentos`
+- `GET /api/orcamentos/{id}`
+- O objeto `orcamentosAtivos` retornado dentro de `GET /api/dashboard`
 
 ---
 
-### `GET /api/contas` — Response atualizado
+## ✅ ALTERAÇÕES EM ENDPOINTS EXISTENTES
 
-O campo `tipo` agora retorna o enum em maiúsculas:
+---
 
+### `GET /api/transacoes` — Filtros avançados
+
+Além da paginação, aceita filtros como query params. Todos opcionais e combináveis entre si.
+
+| Param | Tipo | Exemplo | Descrição |
+|---|---|---|---|
+| `tipo` | enum | `DESPESA` | Filtra por tipo (`DESPESA` ou `RECEITA`) |
+| `status` | enum | `CONFIRMADA` | Filtra por status (`CONFIRMADA`, `PENDENTE`, `CANCELADA`) |
+| `categoriaId` | Long | `3` | Filtra pela categoria específica |
+| `contaId` | Long | `1` | Filtra pela conta específica |
+| `dataInicio` | date | `2026-01-01` | Transações a partir desta data (formato ISO `yyyy-MM-dd`) |
+| `dataFim` | date | `2026-01-31` | Transações até esta data (formato ISO `yyyy-MM-dd`) |
+| `page` | int | `0` | Página |
+| `size` | int | `20` | Itens por página |
+| `sort` | string | `data,desc` | Ordenação |
+
+**Exemplos de uso:**
+```
+# Despesas do mês de março, 10 por página, mais recentes primeiro
+GET /api/transacoes?tipo=DESPESA&dataInicio=2026-03-01&dataFim=2026-03-31&size=10&page=0&sort=data,desc
+
+# Todas as transações da conta 1, pendentes
+GET /api/transacoes?contaId=1&status=PENDENTE
+
+# Transações da categoria "Alimentação" (id=2) do último mês
+GET /api/transacoes?categoriaId=2&dataInicio=2026-02-01&dataFim=2026-02-28
+```
+
+---
+
+### `POST /api/transacoes` e `PUT /api/transacoes/{id}` — Campo recorrência
+
+O body agora aceita o campo opcional `recorrencia`. Se omitido, assume `NENHUMA`.
+
+**Body completo:**
+```json
+{
+  "tipo": "DESPESA",
+  "data": "2026-03-24",
+  "valor": 150.00,
+  "descricao": "Academia",
+  "observacao": "Mensalidade mensal",
+  "status": "CONFIRMADA",
+  "recorrencia": "MENSAL",
+  "idConta": 1,
+  "idCategoria": 3
+}
+```
+
+**Valores aceitos para `recorrencia`:**
+| Valor | Descrição | Comportamento automático |
+|---|---|---|
+| `NENHUMA` | Não recorrente (padrão) | Nenhum |
+| `DIARIA` | Repete todo dia | Nova transação criada todos os dias |
+| `SEMANAL` | Repete toda semana | Nova transação criada toda semana |
+| `MENSAL` | Repete todo mês | Nova transação criada todo mês |
+| `ANUAL` | Repete todo ano | Nova transação criada todo ano |
+
+> Quando `recorrencia != NENHUMA`, o campo `dataProximaOcorrencia` é preenchido automaticamente pelo backend e o servidor criará novas transações nos períodos subsequentes (ver seção de comportamentos automáticos).
+
+**Campos obrigatórios:**
+
+| Campo | Tipo | Obrigatório | Validação |
+|---|---|---|---|
+| `tipo` | `DESPESA` \| `RECEITA` | ✅ | — |
+| `data` | date `yyyy-MM-dd` | ✅ | — |
+| `valor` | decimal | ✅ | Mínimo `0.01` |
+| `status` | `CONFIRMADA` \| `PENDENTE` \| `CANCELADA` | ✅ | — |
+| `idConta` | Long | ✅ | Conta deve pertencer ao usuário |
+| `idCategoria` | Long | ✅ | Categoria deve pertencer ao usuário |
+| `descricao` | string | ❌ | Máximo 100 caracteres |
+| `observacao` | string | ❌ | Máximo 255 caracteres |
+| `recorrencia` | enum | ❌ | Padrão: `NENHUMA` |
+
+**Validação de saldo:** Se `tipo = DESPESA`, o backend verifica automaticamente se há saldo suficiente na conta. Se não houver, retorna `400 Bad Request`:
+```json
+{
+  "status": 400,
+  "erro": "Bad Request",
+  "mensagem": "Saldo insuficiente na conta Nubank. Saldo disponível: R$ 230.00",
+  "timestamp": "2026-03-24T10:00:00"
+}
+```
+
+---
+
+### `DELETE /api/transacoes/{id}` — Hard delete
+
+A transação é **permanentemente removida** do banco de dados. Resposta: `204 No Content`.
+
+---
+
+### `GET /api/contas` e `GET /api/contas/{id}` — Novo campo `saldoAtual`
+
+O campo `saldoAtual` é calculado em tempo real pelo backend somando o saldo inicial com todas as receitas e subtraindo todas as despesas daquela conta.
+
+**Response:**
 ```json
 {
   "id": 1,
   "nome": "Nubank",
-  "tipo": "CORRENTE",
+  "tipo": "Corrente",
   "saldoInicial": 1000.00,
   "saldoAtual": 750.50,
   "idUsuario": 1,
@@ -220,7 +273,27 @@ O campo `tipo` agora retorna o enum em maiúsculas:
 }
 ```
 
-O `saldoAtual` é calculado via SQL em tempo real (não é mais calculado in-memory com lazy loading).
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `saldoAtual` | BigDecimal | Calculado: `saldoInicial + receitas - despesas` da conta |
+| `tipo` | string | Texto livre (ex: `"Corrente"`, `"Poupança"`) — **não é enum** |
+
+> `saldoAtual` reflete o estado em tempo real — toda vez que uma transação é criada, editada ou deletada, o saldo se atualiza na próxima consulta da conta.
+
+**Request para criar/editar conta:**
+```json
+{
+  "nome": "Nubank",
+  "tipo": "Corrente",
+  "saldoInicial": 1000.00
+}
+```
+
+| Campo | Tipo | Obrigatório | Validação |
+|---|---|---|---|
+| `nome` | string | ✅ | Máximo 50 caracteres, único por usuário |
+| `tipo` | string | ✅ | Máximo 30 caracteres, texto livre |
+| `saldoInicial` | decimal | ✅ | Mínimo `0.00` |
 
 ---
 
@@ -230,9 +303,11 @@ O `saldoAtual` é calculado via SQL em tempo real (não é mais calculado in-mem
 
 ### Dashboard — `GET /api/dashboard`
 
-Visão consolidada das finanças do mês atual em uma única chamada. Substitui a necessidade de fazer múltiplas requisições na tela inicial.
+Visão consolidada das finanças do mês atual em uma única chamada. Ideal para usar na tela inicial — substitui 3 a 4 chamadas separadas.
 
-**Response:**
+**Autenticação:** Requerida
+
+**Response completo:**
 ```json
 {
   "saldoTotal": 3250.75,
@@ -253,6 +328,13 @@ Visão consolidada das finanças do mês atual em uma única chamada. Substitui 
       "cor": "#3b82f6",
       "total": 320.00,
       "percentualDoTotal": 18.29
+    },
+    {
+      "idCategoria": 1,
+      "nome": "Lazer",
+      "cor": "#f59e0b",
+      "total": 280.00,
+      "percentualDoTotal": 16.01
     }
   ],
   "orcamentosAtivos": [
@@ -260,30 +342,41 @@ Visão consolidada das finanças do mês atual em uma única chamada. Substitui 
       "id": 1,
       "valorLimite": 1000.00,
       "valorGasto": 850.00,
-      "percentualUtilizado": 85.00,
+      "valorRestante": 150.00,
       "dataInicio": "2026-03-01",
       "dataFim": "2026-03-31",
+      "idUsuario": 1,
       "idCategoria": 2,
-      "nomeCategoria": "Alimentação"
+      "nomeCategoria": "Alimentação",
+      "dataCadastro": "2026-03-01T00:00:00",
+      "dataAtualizacao": "2026-03-24T10:00:00"
     }
   ]
 }
 ```
 
+**Descrição de cada campo:**
+
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `saldoTotal` | BigDecimal | Soma dos `saldoAtual` de todas as contas do usuário |
-| `totalReceitasMes` | BigDecimal | Total de receitas no mês atual |
-| `totalDespesasMes` | BigDecimal | Total de despesas no mês atual |
+| `saldoTotal` | BigDecimal | Soma do `saldoAtual` de **todas** as contas do usuário |
+| `totalReceitasMes` | BigDecimal | Total de receitas com transações no mês calendário atual |
+| `totalDespesasMes` | BigDecimal | Total de despesas com transações no mês calendário atual |
 | `saldoMes` | BigDecimal | `totalReceitasMes - totalDespesasMes` |
-| `topCategorias` | array | Top 5 categorias com mais gastos no mês atual |
-| `orcamentosAtivos` | array | Orçamentos vigentes hoje (já com `valorGasto` e `percentualUtilizado`) |
+| `topCategorias` | array | Top 5 categorias com maior gasto no mês atual, ordenadas decrescentemente |
+| `topCategorias[].total` | BigDecimal | Total gasto nesta categoria no mês |
+| `topCategorias[].percentualDoTotal` | BigDecimal | `(total / totalDespesasMes) * 100` |
+| `orcamentosAtivos` | array | Orçamentos cujo período inclui a data de hoje |
+
+> O período do mês é calculado automaticamente do 1º ao último dia do mês corrente. Não há parâmetros.
 
 ---
 
 ### Alertas — `GET /api/alertas`
 
-Retorna todos os alertas não lidos do usuário autenticado, ordenados do mais recente para o mais antigo.
+Retorna todos os alertas **não lidos** do usuário autenticado, do mais recente para o mais antigo.
+
+**Autenticação:** Requerida
 
 **Response:**
 ```json
@@ -298,38 +391,54 @@ Retorna todos os alertas não lidos do usuário autenticado, ordenados do mais r
   },
   {
     "id": 2,
+    "tipo": "ORCAMENTO_ESTOURADO",
+    "mensagem": "O orçamento de Transporte foi ultrapassado! Gasto: R$ 420.00 de R$ 400.00",
+    "lido": false,
+    "idReferencia": 3,
+    "criadoEm": "2026-03-23T08:00:00"
+  },
+  {
+    "id": 1,
     "tipo": "SALDO_BAIXO",
     "mensagem": "Saldo baixo na conta \"Carteira\": R$ 45.00",
     "lido": false,
     "idReferencia": 5,
-    "criadoEm": "2026-03-23T08:00:00"
+    "criadoEm": "2026-03-22T08:00:00"
   }
 ]
 ```
 
 **Tipos de alerta (`tipo`):**
-| Valor | Quando dispara |
-|---|---|
-| `ORCAMENTO_80_PERCENT` | Quando 80% ou mais do limite de um orçamento foi consumido |
-| `ORCAMENTO_ESTOURADO` | Quando 100% ou mais do limite de um orçamento foi consumido |
-| `SALDO_BAIXO` | Quando o saldo de qualquer conta cai abaixo de R$ 100,00 |
-| `DESPESA_INCOMUM` | Reservado para uso futuro |
+
+| Valor | Quando dispara | `idReferencia` aponta para |
+|---|---|---|
+| `ORCAMENTO_80_PERCENT` | ≥ 80% do limite do orçamento consumido | ID do orçamento |
+| `ORCAMENTO_ESTOURADO` | ≥ 100% do limite do orçamento consumido | ID do orçamento |
+| `SALDO_BAIXO` | Saldo de qualquer conta < R$ 100,00 | ID da conta |
+| `DESPESA_INCOMUM` | Reservado para uso futuro | — |
 
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `idReferencia` | Long | ID do orçamento ou da conta que gerou o alerta |
-| `criadoEm` | LocalDateTime | Timestamp de criação |
+| `id` | Long | ID do alerta |
+| `tipo` | string (enum) | Tipo do alerta (ver tabela acima) |
+| `mensagem` | string | Mensagem legível para exibir ao usuário |
+| `lido` | boolean | Sempre `false` neste endpoint (só retorna não lidos) |
+| `idReferencia` | Long | ID do recurso que gerou o alerta (orçamento ou conta) |
+| `criadoEm` | datetime | Timestamp de criação (`yyyy-MM-ddTHH:mm:ss`) |
 
-> **Quando os alertas são gerados:** Automaticamente todo dia às 08h por um job agendado no servidor. O frontend não precisa fazer nada para gerá-los — apenas consultá-los.
+> **Frequência de geração:** Automaticamente todo dia às **08h00** pelo servidor. O frontend não gera alertas — apenas os consulta.
+> **Deduplicação:** O mesmo alerta não é gerado duas vezes em 24h para o mesmo recurso.
 
 ---
 
 ### Alertas — `PATCH /api/alertas/{id}/lido`
 
-Marca um alerta específico como lido.
+Marca um alerta específico como lido. Após isso, ele não aparece mais no `GET /api/alertas`.
 
-**Response:** O alerta atualizado com `"lido": true`
+**Autenticação:** Requerida
+**Path param:** `id` — ID do alerta
 
+**Response:** `200 OK` com o alerta atualizado:
 ```json
 {
   "id": 3,
@@ -341,13 +450,19 @@ Marca um alerta específico como lido.
 }
 ```
 
-> Sugestão de UX: usar este endpoint ao clicar no sino de notificações ou ao expandir um alerta.
+**Erros possíveis:**
+- `404 Not Found` — Alerta não existe
+- `400 Bad Request` — Alerta pertence a outro usuário
+
+> **Sugestão de UX:** Ao clicar em uma notificação ou ao fechar o dropdown de alertas, disparar `PATCH /api/alertas/{id}/lido` para cada alerta visualizado.
 
 ---
 
 ### Insights — `GET /api/insights/previsao`
 
-Previsão de gastos por categoria para o mês atual, calculada com base na **média ponderada dos últimos 3 meses** (mês mais recente tem peso maior).
+Previsão de gastos por categoria para o mês atual, calculada com base na **média ponderada dos últimos 3 meses** (quanto mais recente o mês, maior o peso na média).
+
+**Autenticação:** Requerida
 
 **Response:**
 ```json
@@ -373,23 +488,27 @@ Previsão de gastos por categoria para o mês atual, calculada com base na **mé
 
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `mediaMensal` | BigDecimal | Média ponderada dos últimos 3 meses |
-| `previsaoMesAtual` | BigDecimal | Projeção para o mês atual |
-| `gastoAtualMes` | BigDecimal | Quanto já foi gasto neste mês |
-| `diferenca` | BigDecimal | `gastoAtualMes - previsaoMesAtual` (positivo = acima do previsto) |
+| `idCategoria` | Long | ID da categoria |
+| `nomeCategoria` | string | Nome da categoria |
+| `mediaMensal` | BigDecimal | Média ponderada dos 3 meses anteriores (mês -1 peso 3, mês -2 peso 2, mês -3 peso 1) |
+| `previsaoMesAtual` | BigDecimal | Igual à `mediaMensal` (projeção para o mês corrente) |
+| `gastoAtualMes` | BigDecimal | Quanto já foi gasto nesta categoria no mês atual |
+| `diferenca` | BigDecimal | `gastoAtualMes - previsaoMesAtual` — positivo = acima do previsto, negativo = abaixo |
 
-> Categorias sem histórico de gastos não aparecem na lista.
-> A lista vem ordenada por `gastoAtualMes` decrescente.
+> Categorias sem nenhum gasto nos últimos 3 meses **não aparecem** na lista.
+> A lista é ordenada por `gastoAtualMes` decrescente (categorias com mais gasto primeiro).
 
 ---
 
 ### Insights — `GET /api/insights/score`
 
-Score financeiro do usuário de 0 a 100, calculado com base em 3 critérios do mês atual:
+Score financeiro do usuário de **0 a 100** para o mês atual, baseado em 3 critérios:
 
-- **30 pts** — Relação receita/despesa (poupou mais de 30% = 30 pts, balanço positivo = 15 pts)
-- **40 pts** — Aderência a orçamentos (proporcional ao percentual de orçamentos respeitados)
-- **30 pts** — Histórico de saldo positivo nos últimos 3 meses (10 pts por mês positivo)
+- **30 pts** — Relação receita/despesa (poupou ≥ 30% = 30 pts; apenas balanço positivo = 15 pts)
+- **40 pts** — Aderência a orçamentos (proporcional ao % de orçamentos vigentes respeitados; sem orçamentos = 20 pts padrão)
+- **30 pts** — Histórico de saldo positivo (10 pts por mês com receitas > despesas, nos últimos 3 meses)
+
+**Autenticação:** Requerida
 
 **Response:**
 ```json
@@ -399,16 +518,23 @@ Score financeiro do usuário de 0 a 100, calculado com base em 3 critérios do m
   "fatoresPositivos": [
     "Você poupou mais de 30% da sua renda este mês",
     "75% dos orçamentos estão dentro do limite",
-    "Saldo positivo nos últimos 3 meses"
+    "Saldo positivo nos últimos 2 meses"
   ],
   "fatoresNegativos": [
-    "Mais da metade dos orçamentos foram ultrapassados"
+    "Suas despesas superaram suas receitas este mês"
   ]
 }
 ```
 
-**Classificações:**
-| Faixa | Classificação |
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `score` | int | Pontuação de 0 a 100 |
+| `classificacao` | string | Categoria do score (ver tabela abaixo) |
+| `fatoresPositivos` | string[] | Lista de aspectos positivos identificados |
+| `fatoresNegativos` | string[] | Lista de pontos de atenção |
+
+**Tabela de classificações:**
+| Faixa de pontos | Classificação |
 |---|---|
 | 80 – 100 | `EXCELENTE` |
 | 60 – 79 | `BOM` |
@@ -419,16 +545,18 @@ Score financeiro do usuário de 0 a 100, calculado com base em 3 critérios do m
 
 ### Insights — `GET /api/insights/relatorio-mensal`
 
-Gera um resumo financeiro personalizado do mês atual usando **Inteligência Artificial (Claude da Anthropic)**. O texto é gerado dinamicamente com base nos dados reais do usuário.
+Gera um resumo financeiro personalizado do mês usando **Inteligência Artificial (Claude da Anthropic)**. O texto é gerado em português, com tom encorajador, com base nos dados reais do mês.
+
+**Autenticação:** Requerida
 
 **Response:**
 ```json
 {
-  "resumo": "Você teve um ótimo mês! Suas receitas superaram as despesas em 43%, e você manteve todos os orçamentos sob controle — exceto Alimentação, que ficou 8% acima do limite. Continue assim!",
+  "resumo": "Você teve um mês muito positivo! Suas receitas superaram as despesas em 43%, e o saldo positivo já se mantém por 3 meses consecutivos. Fique atento ao orçamento de Alimentação, que ficou 8% acima do planejado.",
   "destaques": [
     "Você poupou mais de 30% da sua renda este mês",
-    "Todos os orçamentos foram respeitados",
-    "Saldo positivo nos últimos 3 meses"
+    "Saldo positivo nos últimos 3 meses",
+    "O orçamento de Alimentação foi ultrapassado"
   ],
   "totalReceitas": 5000.00,
   "totalDespesas": 1749.25,
@@ -438,19 +566,21 @@ Gera um resumo financeiro personalizado do mês atual usando **Inteligência Art
 
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `resumo` | String | Texto gerado pela IA (2-3 frases em português) |
-| `destaques` | String[] | Lista combinada de fatores positivos e negativos do score |
-| `totalReceitas` | BigDecimal | Total de receitas do mês |
-| `totalDespesas` | BigDecimal | Total de despesas do mês |
-| `score` | int | Score financeiro do mês |
+| `resumo` | string | Texto em português gerado pela IA (2-3 frases) |
+| `destaques` | string[] | Fatores positivos + negativos do score combinados |
+| `totalReceitas` | BigDecimal | Total de receitas do mês atual |
+| `totalDespesas` | BigDecimal | Total de despesas do mês atual |
+| `score` | int | Score financeiro do mês (0-100) |
 
-> **Nota:** Se a variável de ambiente `ANTHROPIC_API_KEY` não estiver configurada no servidor, o campo `resumo` retornará uma mensagem padrão sem IA.
+> **Configuração necessária no servidor:** A variável de ambiente `ANTHROPIC_API_KEY` precisa estar definida. Se não estiver, o campo `resumo` retornará uma mensagem padrão sem IA mas os demais campos continuam corretos.
 
 ---
 
 ### Classificação com IA — `POST /api/transacoes/classificar`
 
-Sugere automaticamente a categoria mais adequada para uma transação com base na descrição, usando Inteligência Artificial. Útil para pré-preencher o campo de categoria no formulário de nova transação.
+Sugere a categoria mais adequada para uma transação com base na descrição, usando IA. As categorias sugeridas são as **categorias reais do usuário** (não categorias genéricas).
+
+**Autenticação:** Requerida
 
 **Request body:**
 ```json
@@ -465,47 +595,48 @@ Sugere automaticamente a categoria mais adequada para uma transação com base n
   "idCategoria": 2,
   "nomeCategoria": "Alimentação",
   "cor": "#22c55e",
-  "justificativa": "A descrição menciona entrega de comida via iFood, que se enquadra em despesas com alimentação."
+  "justificativa": "Categoria sugerida com base na descrição: \"iFood - pedido de pizza\""
 }
 ```
 
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `idCategoria` | Long | ID da categoria sugerida (categoria real do usuário) |
-| `nomeCategoria` | String | Nome da categoria |
-| `cor` | String | Cor da categoria (hex) |
-| `justificativa` | String | Explicação da IA para a escolha |
+| `idCategoria` | Long | ID da categoria sugerida (pertence ao usuário) |
+| `nomeCategoria` | string | Nome da categoria |
+| `cor` | string | Cor em hex da categoria |
+| `justificativa` | string | Texto explicando o motivo da sugestão |
 
-> **Como usar no frontend:** Ao usuário digitar a descrição da transação, chamar este endpoint e pré-selecionar a categoria sugerida no `<select>`. O usuário pode aceitar ou trocar manualmente.
+> **Fallback:** Se a IA não reconhecer nenhuma categoria compatível, retorna a primeira categoria cadastrada do usuário (nunca retorna erro por causa da IA).
+> **Sugestão de UX:** Chamar este endpoint ao usuário terminar de digitar a descrição (debounce de ~500ms) e pré-selecionar a categoria no formulário. O usuário pode aceitar ou trocar.
+> **Configuração necessária no servidor:** `ANTHROPIC_API_KEY` deve estar definida.
 
 ---
 
-## 📋 RESUMO DE TODOS OS ENDPOINTS
+## 📋 RESUMO COMPLETO DE TODOS OS ENDPOINTS
 
-### Endpoints existentes (comportamento atualizado)
+### Endpoints existentes com comportamento alterado
 
 | Método | Rota | O que mudou |
 |---|---|---|
-| `GET` | `/api/transacoes` | Resposta paginada + filtros por query param |
-| `POST` | `/api/transacoes` | Aceita campo `recorrencia`; `tipo` e `status` agora são enums |
-| `PUT` | `/api/transacoes/{id}` | Aceita campo `recorrencia`; `tipo` e `status` agora são enums |
-| `DELETE` | `/api/transacoes/{id}` | Soft delete (transação marcada como deletada, não removida) |
-| `POST` | `/api/contas` | Campo `tipo` agora é enum (`CORRENTE`, `POUPANCA`, `INVESTIMENTO`, `CARTEIRA`, `OUTRO`) |
-| `PUT` | `/api/contas/{id}` | Campo `tipo` agora é enum |
-| `GET` | `/api/orcamentos` | Response inclui `valorGasto` e `percentualUtilizado` |
-| `GET` | `/api/orcamentos/{id}` | Response inclui `valorGasto` e `percentualUtilizado` |
+| `GET` | `/api/transacoes` | Resposta paginada + filtros avançados por query param |
+| `POST` | `/api/transacoes` | Aceita campo opcional `recorrencia`; valida saldo disponível |
+| `PUT` | `/api/transacoes/{id}` | Aceita campo opcional `recorrencia` |
+| `GET` | `/api/contas` | Response inclui `saldoAtual` calculado dinamicamente |
+| `GET` | `/api/contas/{id}` | Response inclui `saldoAtual` calculado dinamicamente |
+| `GET` | `/api/orcamentos` | Response inclui `valorGasto` e `valorRestante` (substituem `percentualUtilizado`) |
+| `GET` | `/api/orcamentos/{id}` | Response inclui `valorGasto` e `valorRestante` |
 
 ### Novos endpoints
 
-| Método | Rota | Descrição |
-|---|---|---|
-| `GET` | `/api/dashboard` | Dashboard consolidado (saldo, receitas/despesas do mês, top categorias, orçamentos ativos) |
-| `GET` | `/api/alertas` | Lista alertas não lidos do usuário |
-| `PATCH` | `/api/alertas/{id}/lido` | Marca alerta como lido |
-| `GET` | `/api/insights/previsao` | Previsão de gastos por categoria |
-| `GET` | `/api/insights/score` | Score financeiro de 0 a 100 |
-| `GET` | `/api/insights/relatorio-mensal` | Resumo do mês gerado por IA |
-| `POST` | `/api/transacoes/classificar` | Sugere categoria via IA com base na descrição |
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `GET` | `/api/dashboard` | ✅ | Dashboard consolidado do mês atual |
+| `GET` | `/api/alertas` | ✅ | Lista alertas não lidos |
+| `PATCH` | `/api/alertas/{id}/lido` | ✅ | Marca alerta como lido |
+| `GET` | `/api/insights/previsao` | ✅ | Previsão de gastos por categoria |
+| `GET` | `/api/insights/score` | ✅ | Score financeiro do mês (0-100) |
+| `GET` | `/api/insights/relatorio-mensal` | ✅ | Resumo do mês gerado por IA |
+| `POST` | `/api/transacoes/classificar` | ✅ | Sugere categoria via IA pela descrição |
 
 ### Endpoints inalterados
 
@@ -513,8 +644,10 @@ Sugere automaticamente a categoria mais adequada para uma transação com base n
 |---|---|
 | `POST` | `/api/auth/login` |
 | `POST` | `/api/auth/register` |
-| `GET` | `/api/contas` |
-| `GET` | `/api/contas/{id}` |
+| `DELETE` | `/api/transacoes/{id}` |
+| `GET` | `/api/transacoes/{id}` |
+| `POST` | `/api/contas` |
+| `PUT` | `/api/contas/{id}` |
 | `DELETE` | `/api/contas/{id}` |
 | `GET` | `/api/categorias` |
 | `POST` | `/api/categorias` |
@@ -525,40 +658,75 @@ Sugere automaticamente a categoria mais adequada para uma transação com base n
 | `DELETE` | `/api/orcamentos/{id}` |
 | `GET` | `/api/relatorios/pdf` |
 | `GET` | `/api/relatorios/csv` |
-| `GET` | `/api/transacoes/{id}` |
 
 ---
 
-## 🔔 Comportamentos automáticos do servidor (sem ação do frontend)
+## 🔁 Comportamentos automáticos do servidor (sem ação do frontend)
 
 ### Transações recorrentes
-Toda noite à **01h00**, o servidor verifica transações com recorrência ativa e cria automaticamente novas transações para o período seguinte. O campo `dataProximaOcorrencia` controla esse ciclo internamente. O frontend não precisa fazer nada — as novas transações aparecerão normalmente nas listagens.
+
+Toda noite à **01h00**, o servidor verifica todas as transações com `recorrencia != NENHUMA` cuja `dataProximaOcorrencia <= hoje` e cria automaticamente novas transações. O campo `dataProximaOcorrencia` avança para o próximo ciclo.
+
+**O frontend não precisa fazer nada** — as novas transações aparecerão normalmente nas listagens. O usuário apenas vê o efeito: mais transações aparecendo com a mesma descrição e valor nos dias corretos.
 
 ### Geração de alertas
-Todo dia às **08h00**, o servidor verifica:
-- Orçamentos que atingiram 80% ou mais do limite → gera `ORCAMENTO_80_PERCENT`
-- Orçamentos que atingiram 100% ou mais do limite → gera `ORCAMENTO_ESTOURADO`
-- Contas com saldo abaixo de R$ 100,00 → gera `SALDO_BAIXO`
 
-Os alertas têm **deduplicação de 24h** — o mesmo alerta não é gerado duas vezes no mesmo dia para o mesmo recurso.
+Todo dia às **08h00**, o servidor verifica automaticamente para todos os usuários:
+
+1. **Orçamentos ativos** — Se o total de despesas na categoria do orçamento atingiu ≥ 80% → gera `ORCAMENTO_80_PERCENT`. Se atingiu ≥ 100% → gera `ORCAMENTO_ESTOURADO`.
+2. **Contas** — Se o `saldoAtual` de qualquer conta ficou abaixo de R$ 100,00 → gera `SALDO_BAIXO`.
+
+**Deduplicação:** O mesmo alerta (mesmo tipo + mesmo `idReferencia`) não é gerado mais de uma vez a cada 24h.
 
 ---
 
-## 💡 Sugestões de implementação para o frontend
+## 💡 Guia de implementação para o frontend
 
-### Checklist de correções obrigatórias
+### ✅ Correções obrigatórias (breaking changes)
 
-- [ ] `GET /api/transacoes` → trocar `.data` por `.data.content` em todos os lugares que listam transações
-- [ ] Transações: trocar `status: "CONFIRMADA"` por `status: "PAGO"` no formulário
-- [ ] Contas: trocar `tipo: "OUTROS"` por `tipo: "OUTRO"` no select do formulário
-- [ ] Verificar se `jsonPath("$.tipo").value("Corrente")` em qualquer parte do código → trocar por `"CORRENTE"`
+- [ ] `GET /api/transacoes` → Substituir `.data` por `.data.content` em todo lugar que lista transações
+- [ ] `GET /api/transacoes` → Usar `.data.totalPages` / `.data.number` para paginação real
+- [ ] `GET /api/orcamentos` → Substituir `percentualUtilizado` por `(valorGasto / valorLimite * 100)` calculado no frontend
+- [ ] `TransacaoResponse` → O campo `recorrencia` agora sempre vem na resposta — garantir que o modelo/tipo aceite o novo campo
 
-### Checklist de novas funcionalidades sugeridas
+### 🆕 Novas funcionalidades sugeridas
 
-- [ ] **Dashboard:** Substituir as 2 chamadas paralelas (`/contas` + `/transacoes`) por 1 chamada a `/api/dashboard`
-- [ ] **Sino de notificações no header/sidebar:** `GET /api/alertas` ao carregar, badge com a contagem, `PATCH /api/alertas/{id}/lido` ao abrir/fechar
-- [ ] **Página de Insights:** Exibir score financeiro (com barra de progresso e fatores), previsão de gastos por categoria (tabela ou barras) e o relatório mensal da IA
-- [ ] **Formulário de transação:** Adicionar campo `recorrencia` (select com NENHUMA / DIARIA / SEMANAL / MENSAL / ANUAL)
-- [ ] **Formulário de transação:** Botão "Sugerir categoria" que chama `POST /api/transacoes/classificar` com a descrição digitada
-- [ ] **Filtros na listagem de transações:** Usar os query params do `GET /api/transacoes` para filtrar por tipo, período, categoria e conta no servidor (em vez de filtrar no frontend)
-- [ ] **Paginação:** Implementar paginação real na listagem de transações usando os campos `totalPages`, `number`, `size` do response
+- [ ] **Tela inicial — Dashboard:** Substituir múltiplas chamadas por 1 chamada a `GET /api/dashboard`. Exibir cards de saldo total, receitas e despesas do mês, gráfico de top 5 categorias, e lista de orçamentos ativos com barra de progresso.
+- [ ] **Badge de notificações no header/sidebar:** Chamar `GET /api/alertas` ao carregar o app. Exibir badge com o número de alertas não lidos. Ao clicar, listar os alertas. Ao fechar ou clicar em um alerta, chamar `PATCH /api/alertas/{id}/lido`.
+- [ ] **Página de Insights:** Três seções:
+  - Score financeiro (gauge de 0-100, classificação colorida, lista de fatores)
+  - Previsão de gastos (tabela ou gráfico de barras: previsto vs. atual por categoria)
+  - Relatório mensal da IA (caixa de texto com o resumo gerado)
+- [ ] **Formulário de nova transação:**
+  - Adicionar campo `recorrencia` (select: Não se repete / Diária / Semanal / Mensal / Anual)
+  - Botão "Sugerir categoria" que chama `POST /api/transacoes/classificar` com a descrição e pré-preenche o select de categoria
+- [ ] **Filtros na listagem de transações:** Usar os query params do `GET /api/transacoes` para filtrar no servidor (tipo, status, período, categoria, conta) em vez de filtrar arrays no frontend
+- [ ] **Paginação na listagem:** Usar `totalPages`, `number`, `size` para renderizar navegação de páginas
+
+### ⚙️ Configuração necessária no servidor
+
+Para as funcionalidades com IA (`/api/insights/relatorio-mensal` e `POST /api/transacoes/classificar`), a variável de ambiente `ANTHROPIC_API_KEY` precisa estar definida com uma chave válida da API da Anthropic. Sem ela, o endpoint de classificação ainda funciona mas pode retornar a primeira categoria cadastrada; o relatório mensal retorna mensagem padrão.
+
+---
+
+## 🔐 Mapeamento de erros HTTP
+
+Todos os endpoints seguem o mesmo padrão de resposta de erro:
+
+```json
+{
+  "status": 400,
+  "erro": "Bad Request",
+  "mensagem": "Saldo insuficiente na conta Nubank. Saldo disponível: R$ 230.00",
+  "timestamp": "2026-03-24T10:00:00"
+}
+```
+
+| Status | Quando ocorre |
+|---|---|
+| `400 Bad Request` | Validação falhou (campo obrigatório ausente, valor inválido, saldo insuficiente) |
+| `401 Unauthorized` | Token JWT ausente ou expirado |
+| `403 Forbidden` | Recurso pertence a outro usuário |
+| `404 Not Found` | Recurso não encontrado pelo ID informado |
+| `409 Conflict` | Duplicidade (ex: nome de conta já existe) |
+| `500 Internal Server Error` | Erro inesperado no servidor |

@@ -1,6 +1,6 @@
 package br.com.ufape.spendfy.entity;
 
-import br.com.ufape.spendfy.enums.TipoAlerta;
+import br.com.ufape.spendfy.entity.enums.TipoAlerta;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

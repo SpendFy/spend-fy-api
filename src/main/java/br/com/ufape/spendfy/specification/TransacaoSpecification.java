@@ -1,8 +1,8 @@
 package br.com.ufape.spendfy.specification;
 
 import br.com.ufape.spendfy.entity.Transacao;
-import br.com.ufape.spendfy.enums.StatusTransacao;
-import br.com.ufape.spendfy.enums.TipoTransacao;
+import br.com.ufape.spendfy.entity.enums.StatusTransacao;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;

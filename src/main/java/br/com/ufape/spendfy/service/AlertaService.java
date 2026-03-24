@@ -4,7 +4,7 @@ import br.com.ufape.spendfy.component.AuthenticatedUserResolver;
 import br.com.ufape.spendfy.dto.alerta.AlertaResponse;
 import br.com.ufape.spendfy.entity.Alerta;
 import br.com.ufape.spendfy.entity.Usuario;
-import br.com.ufape.spendfy.enums.TipoAlerta;
+import br.com.ufape.spendfy.entity.enums.TipoAlerta;
 import br.com.ufape.spendfy.exception.ResourceNotFoundException;
 import br.com.ufape.spendfy.repository.AlertaRepository;
 import lombok.RequiredArgsConstructor;
