@@ -5,6 +5,9 @@ import br.com.ufape.spendfy.entity.Categoria;
 import br.com.ufape.spendfy.entity.Conta;
 import br.com.ufape.spendfy.entity.Transacao;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.StatusTransacao;
+import br.com.ufape.spendfy.entity.enums.StatusUsuario;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import br.com.ufape.spendfy.repository.CategoriaRepository;
 import br.com.ufape.spendfy.repository.ContaRepository;
 import br.com.ufape.spendfy.repository.TransacaoRepository;
@@ -75,7 +78,7 @@ class TransacaoControllerIntegrationTest {
                 .nome("João Silva")
                 .email("joao@email.com")
                 .senha(passwordEncoder.encode("senha123"))
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
         usuario = usuarioRepository.save(usuario);
 
@@ -95,12 +98,12 @@ class TransacaoControllerIntegrationTest {
         categoria = categoriaRepository.save(categoria);
 
         transacaoRequest = TransacaoRequest.builder()
-                .tipo("DESPESA")
+                .tipo(TipoTransacao.DESPESA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(50.00))
                 .descricao("Supermercado")
                 .observacao("Compras do mês")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .idConta(conta.getId())
                 .idCategoria(categoria.getId())
                 .build();
@@ -131,7 +134,7 @@ class TransacaoControllerIntegrationTest {
     @WithMockUser(username = "joao@email.com")
     @DisplayName("Deve criar transação de receita")
     void deveCriarTransacaoDeReceita() throws Exception {
-        transacaoRequest.setTipo("RECEITA");
+        transacaoRequest.setTipo(TipoTransacao.RECEITA);
         transacaoRequest.setDescricao("Salário");
         transacaoRequest.setValor(BigDecimal.valueOf(5000.00));
 
@@ -182,11 +185,11 @@ class TransacaoControllerIntegrationTest {
     @DisplayName("Deve listar todas as transações do usuário")
     void deveListarTodasTransacoesDoUsuario() throws Exception {
         Transacao transacao1 = Transacao.builder()
-                .tipo("DESPESA")
+                .tipo(TipoTransacao.DESPESA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(50.00))
                 .descricao("Mercado")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .usuario(usuario)
                 .conta(conta)
                 .categoria(categoria)
@@ -194,11 +197,11 @@ class TransacaoControllerIntegrationTest {
         transacaoRepository.save(transacao1);
 
         Transacao transacao2 = Transacao.builder()
-                .tipo("RECEITA")
+                .tipo(TipoTransacao.RECEITA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(1000.00))
                 .descricao("Salário")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .usuario(usuario)
                 .conta(conta)
                 .categoria(categoria)
@@ -226,11 +229,11 @@ class TransacaoControllerIntegrationTest {
     @DisplayName("Deve buscar transação por ID")
     void deveBuscarTransacaoPorId() throws Exception {
         Transacao transacao = Transacao.builder()
-                .tipo("DESPESA")
+                .tipo(TipoTransacao.DESPESA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(50.00))
                 .descricao("Mercado")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .usuario(usuario)
                 .conta(conta)
                 .categoria(categoria)
@@ -256,11 +259,11 @@ class TransacaoControllerIntegrationTest {
     @DisplayName("Deve atualizar transação com sucesso")
     void deveAtualizarTransacaoComSucesso() throws Exception {
         Transacao transacao = Transacao.builder()
-                .tipo("DESPESA")
+                .tipo(TipoTransacao.DESPESA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(50.00))
                 .descricao("Mercado")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .usuario(usuario)
                 .conta(conta)
                 .categoria(categoria)
@@ -294,11 +297,11 @@ class TransacaoControllerIntegrationTest {
     @DisplayName("Deve deletar transação com sucesso")
     void deveDeletarTransacaoComSucesso() throws Exception {
         Transacao transacao = Transacao.builder()
-                .tipo("DESPESA")
+                .tipo(TipoTransacao.DESPESA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(50.00))
                 .descricao("Mercado")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .usuario(usuario)
                 .conta(conta)
                 .categoria(categoria)
@@ -327,16 +330,16 @@ class TransacaoControllerIntegrationTest {
                 .nome("Maria")
                 .email("outro@email.com")
                 .senha(passwordEncoder.encode("senha123"))
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
         usuarioRepository.save(outroUsuario);
 
         Transacao transacao = Transacao.builder()
-                .tipo("DESPESA")
+                .tipo(TipoTransacao.DESPESA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(50.00))
                 .descricao("Mercado")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .usuario(usuario)
                 .conta(conta)
                 .categoria(categoria)

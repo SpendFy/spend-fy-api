@@ -3,6 +3,7 @@ package br.com.ufape.spendfy.controller;
 import br.com.ufape.spendfy.dto.categoria.CategoriaRequest;
 import br.com.ufape.spendfy.entity.Categoria;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.StatusUsuario;
 import br.com.ufape.spendfy.repository.CategoriaRepository;
 import br.com.ufape.spendfy.repository.UsuarioRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,7 +59,7 @@ class CategoriaControllerIntegrationTest {
                 .nome("João Silva")
                 .email("joao@email.com")
                 .senha(passwordEncoder.encode("senha123"))
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
         usuario = usuarioRepository.save(usuario);
 

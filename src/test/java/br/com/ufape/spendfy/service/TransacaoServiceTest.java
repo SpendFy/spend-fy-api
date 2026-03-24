@@ -6,6 +6,9 @@ import br.com.ufape.spendfy.entity.Categoria;
 import br.com.ufape.spendfy.entity.Conta;
 import br.com.ufape.spendfy.entity.Transacao;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.StatusTransacao;
+import br.com.ufape.spendfy.entity.enums.StatusUsuario;
+import br.com.ufape.spendfy.entity.enums.TipoTransacao;
 import br.com.ufape.spendfy.exception.BusinessException;
 import br.com.ufape.spendfy.exception.ResourceNotFoundException;
 import br.com.ufape.spendfy.repository.CategoriaRepository;
@@ -34,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Testes Unitários - TransacaoService")
@@ -73,7 +77,7 @@ class TransacaoServiceTest {
                 .nome("João Silva")
                 .email("joao@email.com")
                 .senha("senha123")
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
 
         conta = Conta.builder()
@@ -93,12 +97,12 @@ class TransacaoServiceTest {
 
         transacao = Transacao.builder()
                 .id(1L)
-                .tipo("DESPESA")
+                .tipo(TipoTransacao.DESPESA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(50.00))
                 .descricao("Supermercado")
                 .observacao("Compras do mês")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .usuario(usuario)
                 .conta(conta)
                 .categoria(categoria)
@@ -107,12 +111,12 @@ class TransacaoServiceTest {
                 .build();
 
         transacaoRequest = TransacaoRequest.builder()
-                .tipo("DESPESA")
+                .tipo(TipoTransacao.DESPESA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(50.00))
                 .descricao("Supermercado")
                 .observacao("Compras do mês")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .idConta(1L)
                 .idCategoria(1L)
                 .build();
@@ -121,6 +125,7 @@ class TransacaoServiceTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getName()).thenReturn("joao@email.com");
         when(usuarioRepository.findByEmail("joao@email.com")).thenReturn(Optional.of(usuario));
+        lenient().when(transacaoRepository.sumValorByContaIdAndTipo(any(), any())).thenReturn(BigDecimal.ZERO);
     }
 
     @Test
@@ -134,10 +139,10 @@ class TransacaoServiceTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getTipo()).isEqualTo("DESPESA");
+        assertThat(response.getTipo()).isEqualTo(TipoTransacao.DESPESA);
         assertThat(response.getValor()).isEqualByComparingTo(BigDecimal.valueOf(50.00));
         assertThat(response.getDescricao()).isEqualTo("Supermercado");
-        assertThat(response.getStatus()).isEqualTo("CONFIRMADA");
+        assertThat(response.getStatus()).isEqualTo(StatusTransacao.CONFIRMADA);
         assertThat(response.getIdConta()).isEqualTo(1L);
         assertThat(response.getIdCategoria()).isEqualTo(1L);
 
@@ -147,8 +152,8 @@ class TransacaoServiceTest {
     @Test
     @DisplayName("Deve criar transação de receita com sucesso")
     void deveCriarTransacaoReceitaComSucesso() {
-        transacaoRequest.setTipo("RECEITA");
-        transacao.setTipo("RECEITA");
+        transacaoRequest.setTipo(TipoTransacao.RECEITA);
+        transacao.setTipo(TipoTransacao.RECEITA);
         transacao.setDescricao("Salário");
         transacao.setValor(BigDecimal.valueOf(5000.00));
 
@@ -159,7 +164,7 @@ class TransacaoServiceTest {
         TransacaoResponse response = transacaoService.criar(transacaoRequest);
 
         assertThat(response).isNotNull();
-        assertThat(response.getTipo()).isEqualTo("RECEITA");
+        assertThat(response.getTipo()).isEqualTo(TipoTransacao.RECEITA);
         verify(transacaoRepository, times(1)).save(any(Transacao.class));
     }
 
@@ -234,11 +239,11 @@ class TransacaoServiceTest {
     void deveListarTodasTransacoesDoUsuario() {
         Transacao transacao2 = Transacao.builder()
                 .id(2L)
-                .tipo("RECEITA")
+                .tipo(TipoTransacao.RECEITA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(1000.00))
                 .descricao("Salário")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .usuario(usuario)
                 .conta(conta)
                 .categoria(categoria)
@@ -250,8 +255,8 @@ class TransacaoServiceTest {
         List<TransacaoResponse> responses = transacaoService.listarTodas();
 
         assertThat(responses).hasSize(2);
-        assertThat(responses.get(0).getTipo()).isEqualTo("DESPESA");
-        assertThat(responses.get(1).getTipo()).isEqualTo("RECEITA");
+        assertThat(responses.get(0).getTipo()).isEqualTo(TipoTransacao.DESPESA);
+        assertThat(responses.get(1).getTipo()).isEqualTo(TipoTransacao.RECEITA);
     }
 
     @Test
@@ -298,12 +303,12 @@ class TransacaoServiceTest {
     @DisplayName("Deve atualizar transação com sucesso")
     void deveAtualizarTransacaoComSucesso() {
         TransacaoRequest requestAtualizado = TransacaoRequest.builder()
-                .tipo("DESPESA")
+                .tipo(TipoTransacao.DESPESA)
                 .data(LocalDate.now())
                 .valor(BigDecimal.valueOf(75.00))
                 .descricao("Farmácia")
                 .observacao("Remédios")
-                .status("CONFIRMADA")
+                .status(StatusTransacao.CONFIRMADA)
                 .idConta(1L)
                 .idCategoria(1L)
                 .build();

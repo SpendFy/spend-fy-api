@@ -4,9 +4,11 @@ import br.com.ufape.spendfy.dto.conta.ContaRequest;
 import br.com.ufape.spendfy.dto.conta.ContaResponse;
 import br.com.ufape.spendfy.entity.Conta;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.StatusUsuario;
 import br.com.ufape.spendfy.exception.BusinessException;
 import br.com.ufape.spendfy.exception.ResourceNotFoundException;
 import br.com.ufape.spendfy.repository.ContaRepository;
+import br.com.ufape.spendfy.repository.TransacaoRepository;
 import br.com.ufape.spendfy.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Testes Unitários - ContaService")
@@ -39,6 +42,9 @@ class ContaServiceTest {
 
     @Mock
     private UsuarioRepository usuarioRepository;
+
+    @Mock
+    private TransacaoRepository transacaoRepository;
 
     @Mock
     private SecurityContext securityContext;
@@ -60,7 +66,7 @@ class ContaServiceTest {
                 .nome("João Silva")
                 .email("joao@email.com")
                 .senha("senha123")
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
 
         conta = Conta.builder()
@@ -83,6 +89,7 @@ class ContaServiceTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getName()).thenReturn("joao@email.com");
         when(usuarioRepository.findByEmail("joao@email.com")).thenReturn(Optional.of(usuario));
+        lenient().when(transacaoRepository.sumValorByContaIdAndTipo(any(), any())).thenReturn(BigDecimal.ZERO);
     }
 
     @Test

@@ -3,6 +3,7 @@ package br.com.ufape.spendfy.controller;
 import br.com.ufape.spendfy.dto.auth.LoginRequest;
 import br.com.ufape.spendfy.dto.auth.RegisterRequest;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.StatusUsuario;
 import br.com.ufape.spendfy.repository.UsuarioRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,7 +75,7 @@ class AuthControllerIntegrationTest {
         assertThat(usuarioRepository.count()).isEqualTo(1);
 
         Usuario usuario = usuarioRepository.findByEmail("joao@email.com").orElseThrow();
-        assertThat(usuario.getStatus()).isEqualTo("ATIVO");
+        assertThat(usuario.getStatus()).isEqualTo(StatusUsuario.ATIVO);
         assertThat(passwordEncoder.matches("senha123", usuario.getSenha())).isTrue();
     }
 
@@ -85,7 +86,7 @@ class AuthControllerIntegrationTest {
                 .nome("Maria")
                 .email("joao@email.com")
                 .senha(passwordEncoder.encode("outrasenha"))
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
         usuarioRepository.save(usuario);
 
@@ -136,7 +137,7 @@ class AuthControllerIntegrationTest {
                 .nome("João Silva")
                 .email("joao@email.com")
                 .senha(passwordEncoder.encode("senha123"))
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
         usuarioRepository.save(usuario);
 
@@ -157,7 +158,7 @@ class AuthControllerIntegrationTest {
                 .nome("João Silva")
                 .email("joao@email.com")
                 .senha(passwordEncoder.encode("senha123"))
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
         usuarioRepository.save(usuario);
 

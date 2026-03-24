@@ -4,6 +4,7 @@ import br.com.ufape.spendfy.dto.auth.AuthResponse;
 import br.com.ufape.spendfy.dto.auth.LoginRequest;
 import br.com.ufape.spendfy.dto.auth.RegisterRequest;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.StatusUsuario;
 import br.com.ufape.spendfy.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -66,7 +67,7 @@ class AuthServiceTest {
                 .nome("João Silva")
                 .email("joao@email.com")
                 .senha("$2a$10$encodedPassword")
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
     }
 
@@ -112,7 +113,7 @@ class AuthServiceTest {
         when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$encodedPassword");
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
             Usuario savedUsuario = invocation.getArgument(0);
-            assertThat(savedUsuario.getStatus()).isEqualTo("ATIVO");
+            assertThat(savedUsuario.getStatus()).isEqualTo(StatusUsuario.ATIVO);
             return usuario;
         });
         when(jwtService.generateToken(any(Usuario.class))).thenReturn("fake.jwt.token");

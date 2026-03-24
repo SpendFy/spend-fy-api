@@ -5,10 +5,12 @@ import br.com.ufape.spendfy.dto.orcamento.OrcamentoResponse;
 import br.com.ufape.spendfy.entity.Categoria;
 import br.com.ufape.spendfy.entity.Orcamento;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.StatusUsuario;
 import br.com.ufape.spendfy.exception.BusinessException;
 import br.com.ufape.spendfy.exception.ResourceNotFoundException;
 import br.com.ufape.spendfy.repository.CategoriaRepository;
 import br.com.ufape.spendfy.repository.OrcamentoRepository;
+import br.com.ufape.spendfy.repository.TransacaoRepository;
 import br.com.ufape.spendfy.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Testes Unitários - OrcamentoService")
@@ -46,6 +49,9 @@ class OrcamentoServiceTest {
 
     @Mock
     private UsuarioRepository usuarioRepository;
+
+    @Mock
+    private TransacaoRepository transacaoRepository;
 
     @Mock
     private SecurityContext securityContext;
@@ -68,7 +74,7 @@ class OrcamentoServiceTest {
                 .nome("João Silva")
                 .email("joao@email.com")
                 .senha("senha123")
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
 
         categoria = Categoria.builder()
@@ -100,6 +106,7 @@ class OrcamentoServiceTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getName()).thenReturn("joao@email.com");
         when(usuarioRepository.findByEmail("joao@email.com")).thenReturn(Optional.of(usuario));
+        lenient().when(transacaoRepository.sumValorByCategoriaAndPeriodoAndTipo(any(), any(), any(), any(), any())).thenReturn(BigDecimal.ZERO);
     }
 
     @Test

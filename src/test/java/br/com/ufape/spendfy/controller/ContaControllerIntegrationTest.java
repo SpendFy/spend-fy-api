@@ -3,6 +3,7 @@ package br.com.ufape.spendfy.controller;
 import br.com.ufape.spendfy.dto.conta.ContaRequest;
 import br.com.ufape.spendfy.entity.Conta;
 import br.com.ufape.spendfy.entity.Usuario;
+import br.com.ufape.spendfy.entity.enums.StatusUsuario;
 import br.com.ufape.spendfy.repository.ContaRepository;
 import br.com.ufape.spendfy.repository.UsuarioRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,7 +61,7 @@ class ContaControllerIntegrationTest {
                 .nome("João Silva")
                 .email("joao@email.com")
                 .senha(passwordEncoder.encode("senha123"))
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
         usuario = usuarioRepository.save(usuario);
 
@@ -237,7 +238,7 @@ class ContaControllerIntegrationTest {
                 .nome("Maria")
                 .email("outro@email.com")
                 .senha(passwordEncoder.encode("senha123"))
-                .status("ATIVO")
+                .status(StatusUsuario.ATIVO)
                 .build();
         usuarioRepository.save(outroUsuario);
 
